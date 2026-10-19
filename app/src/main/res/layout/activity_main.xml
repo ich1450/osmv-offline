@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+
+    android:fitsSystemWindows="false">
+
+    <org.osmdroid.views.MapView android:id="@+id/map"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="false"
+        />
+
+    <com.applikationsprogramvara.osmviewer.UserTouchSurface
+        android:id="@+id/userTouchSurface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        />
+
+    <TextView
+        android:id="@+id/tvOutOfScreenDistance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:background="@drawable/rounded_corner"
+        android:padding="3dp"
+        />
+
+    <com.applikationsprogramvara.osmviewer.OutOfScreenPointer
+        android:id="@+id/outOfScreenPointer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:textViewDistance="@id/tvOutOfScreenDistance"
+        />
+
+    <RelativeLayout
+        android:id="@+id/mainLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        >
+
+        <include
+            layout="@layout/main_buttons_panel"
+            android:id="@+id/mainButtons"
+            />
+
+        <include
+            layout="@layout/aux_buttons_panel"
+            android:id="@+id/auxButtons"
+            />
+
+        <include
+            layout="@layout/text_labels_panel"
+            android:id="@+id/textLabelsPanel"
+            />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/btnDebug"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_debug"
+            android:background="@color/btnBack"
+            android:padding="@dimen/btnPadding"
+            android:contentDescription="@string/btn_debug_info"
+
+            android:layout_alignParentBottom="true"
+            />
+
+        <include
+            layout="@layout/debug_info_panel"
+            android:id="@+id/debugLayout"
+            />
+
+
+    </RelativeLayout>
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:src="@drawable/ic_center_target"
+        android:contentDescription="Screen center"
+        />
+
+</RelativeLayout>

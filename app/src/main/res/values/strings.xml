@@ -1,0 +1,77 @@
+<resources>
+    <string name="app_name">OSM Viewer</string>
+
+    <string name="stg_cat_hints">Hints</string>
+    <string name="stg_map_source_hint_title">Hint: Long tap</string>
+    <string name="stg_map_source_hint_desc">Use long tap on the map icon to select an alternative map source directly from the main screen</string>
+    <string name="stg_hint2_title">Hint: Map caching</string>
+    <string name="stg_hint2_desc">The app is using caching mechanism of OSMDroid library. Once a piece of map is loaded it is saved in cache. Next time the same piece of map can be displayed without network connectivity. There is no function for downloading an area in the app.</string>
+    <string name="stg_cat_general">General</string>
+    <string name="stg_map_source0_title">General map source</string>
+    <string name="stg_map_source1_title">Auxiliary map source</string>
+    <string name="stg_overlay_source_title">Overlay source</string>
+    <string name="stg_show_overlay_btn_title">Show overlay button</string>
+    <string name="stg_show_overlay_btn_desc">Allows to switch on displaying hiking or cycling trails over the map</string>
+    <string name="stg_units">Units</string>
+
+    <string name="stg_cat_experimental">Experimental</string>
+
+    <string name="stg_cat_about">About</string>
+    <string name="stg_marketlink">Open app in Google Play</string>
+    <string name="stg_versions">Versions</string>
+    <string name="stg_version_lib">OSM Droid library</string>
+
+    <string name="toast_error_value_low">Entered value is too low</string>
+    <string name="toast_error_value_high">Entered value is too high</string>
+
+    <string name="btn_change_map_source">Tap: Switch map - General, topographic or offline\nLong tap: Change map source / offline maps</string>
+    <string name="btn_change_overlay_source">Tap: Switch overlay\nLong tap: Change overlay source</string>
+    <string name="btn_gps">Display your position on the map</string>
+    <string name="btn_location">Tap: Jump to your location\nLong tap: follow your location.</string>
+    <string name="btn_zoom_in">Zoom in</string>
+    <string name="btn_zoom_out">Zoom out</string>
+    <string name="btn_settings">Tap: Settings\nLong tap: Show extra tools</string>
+    <string name="btn_debug_info">Debug info</string>
+    <string name="btn_ruler">Tap: Measure distance by segments\nLong tap: Measure distance by rolling\nTwo fingers for navigation</string>
+
+    <string name="toast_follow_loc_1">Following location enabled</string>
+    <string name="toast_follow_loc_0">Following location disabled</string>
+
+    <string name="toast_loc_not_avail1">Location is not yet available</string>
+    <string name="toast_loc_not_avail2">Location is not available</string>
+
+    <string name="dlg_deny_loc_perm_title">What\'s happened?</string>
+    <string name="dlg_deny_loc_perm_message">Without the location permission you will be not able to jump or to follow your current location on the map. Accept this request next time if you need these functions.</string>
+    <string name="dlg_permanent_deny_loc_perm_message">Without the location permission you will be not able to jump or to follow your current location on the map. Grant permissions in app settings.</string>
+    <string name="btn_ok">OK</string>
+    <string name="title_settings">Settings</string>
+    <string name="toast_location_service_disabled">Location service disabled</string>
+
+    <string name="unit_meter">m</string>
+    <string name="unit_km">km</string>
+    <string name="unit_mile">mi</string>
+    <string name="unit_yard">yd</string>
+    <string name="rulerStart">Select the start point</string>
+
+    <string name="dlg_select_map_source_title">Select source</string>
+    <string name="dlg_select_overlay_source_title">Select overlay</string>
+
+    <!-- offline maps -->
+    <string name="menu_offline_maps">Offline maps…</string>
+    <string name="dlg_offline_maps_title">Offline maps</string>
+    <string name="menu_offline_import">+ Import map file (.mbtiles, .sqlite, .zip, .gemf)…</string>
+    <string name="menu_offline_delete">Delete a map…</string>
+    <string name="menu_offline_folder">Where are the maps stored?</string>
+    <string name="dlg_offline_folder_message">Offline maps are stored in:\n\n%1$s\n\nYou can also copy map files into this folder via USB and open this menu again.\n\nOffline maps never use the network. Beyond the most detailed zoom level of a map, its tiles are enlarged.</string>
+    <string name="dlg_offline_delete_title">Delete offline map</string>
+    <string name="dlg_offline_delete_confirm">Delete \"%1$s\" from this device?</string>
+    <string name="dlg_offline_import_title">Importing map…</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="toast_offline_imported">Map imported: %1$s</string>
+    <string name="toast_offline_import_failed">Import failed: %1$s</string>
+    <string name="toast_offline_unsupported">Unsupported file type. Use .mbtiles, .sqlite, .zip or .gemf</string>
+    <string name="toast_offline_no_space">Not enough free storage (%1$s needed)</string>
+    <string name="toast_offline_open_failed">Cannot open offline map: %1$s</string>
+
+</resources>
