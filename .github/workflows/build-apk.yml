@@ -3,6 +3,7 @@ name: Build APK
 on:
   push:
     branches: [main]
+    paths-ignore: ['render/**', '.github/workflows/render-otm.yml']
   workflow_dispatch:
 
 permissions:
