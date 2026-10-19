@@ -6,6 +6,8 @@ Tiles are rendered at 256*scale pixels with Mapnik's scale_factor, i.e. scale=2 
 only with twice the resolution.
 """
 import argparse
+import hashlib
+import io
 import math
 import multiprocessing as mp
 import os
@@ -62,6 +64,14 @@ def render(tile):
         mapnik.render(_map, im, float(_args.scale))
     except Exception as e:  # keep going, report at the end
         return z, x, y, None, str(e)
+    if _args.format.startswith("webp"):
+        # WebP via Pillow (lossy, quality after the colon, e.g. "webp:85")
+        from PIL import Image
+        quality = int(_args.format.split(":")[1]) if ":" in _args.format else 85
+        png = Image.open(io.BytesIO(im.tostring("png32")))
+        buf = io.BytesIO()
+        png.convert("RGB").save(buf, "WEBP", quality=quality, method=5)
+        return z, x, y, buf.getvalue(), None
     return z, x, y, im.tostring(_args.format), None
 
 
@@ -99,16 +109,22 @@ def main():
     if os.path.exists(args.out):
         os.remove(args.out)
     db = sqlite3.connect(args.out)
+    # identical tiles (sea, lakes, uniform forest) are stored only once: "map" points to "images",
+    # "tiles" is a view with the standard MBTiles columns, so readers need nothing special
     db.executescript("""
         PRAGMA journal_mode = OFF; PRAGMA synchronous = OFF;
         CREATE TABLE metadata (name TEXT, value TEXT);
-        CREATE TABLE tiles (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB);
-        CREATE UNIQUE INDEX tile_index ON tiles (zoom_level, tile_column, tile_row);
+        CREATE TABLE map (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_id TEXT);
+        CREATE UNIQUE INDEX map_index ON map (zoom_level, tile_column, tile_row);
+        CREATE TABLE images (tile_id TEXT, tile_data BLOB);
+        CREATE UNIQUE INDEX images_id ON images (tile_id);
+        CREATE VIEW tiles AS SELECT map.zoom_level AS zoom_level, map.tile_column AS tile_column,
+            map.tile_row AS tile_row, images.tile_data AS tile_data FROM map JOIN images ON images.tile_id = map.tile_id;
     """)
     w, s, e, n = bbox
     meta = {
         "name": args.name,
-        "format": "png",
+        "format": "webp" if args.format.startswith("webp") else "png",
         "type": "baselayer",
         "version": "1",
         "description": f"OpenTopoMap style, {256 * args.scale} px tiles",
@@ -132,12 +148,17 @@ def main():
                 errors += 1
                 first_error = first_error or f"{z}/{x}/{y}: {err}"
             else:
-                db.execute("INSERT INTO tiles VALUES (?, ?, ?, ?)", (z, x, (2 ** z - 1) - y, sqlite3.Binary(data)))
+                tid = hashlib.md5(data).hexdigest()
+                db.execute("INSERT OR IGNORE INTO images VALUES (?, ?)", (tid, sqlite3.Binary(data)))
+                db.execute("INSERT INTO map VALUES (?, ?, ?, ?)", (z, x, (2 ** z - 1) - y, tid))
             if done % 500 == 0 or done == len(tiles):
                 db.commit()
                 el = time.time() - start
                 print(f"  {done}/{len(tiles)} tiles, {el / 60:.1f} min, {done / el:.1f} tiles/s, {errors} errors", flush=True)
     db.commit()
+    unique = db.execute("SELECT count(*) FROM images").fetchone()[0]
+    print(f"{done - errors} tiles, {unique} unique images ({done - errors - unique} duplicates stored once)")
+    db.execute("VACUUM")
     db.close()
     print(f"written {args.out} ({os.path.getsize(args.out) / 1e6:.1f} MB)")
     if errors:

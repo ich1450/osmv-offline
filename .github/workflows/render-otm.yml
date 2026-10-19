@@ -58,7 +58,9 @@ jobs:
               y = int((1 - math.log(math.tan(math.radians(lat)) + 1 / math.cos(math.radians(lat))) / math.pi) / 2 * t)
               row = db.execute("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?", (z, x, t - 1 - y)).fetchone()
               if row:
-                  open(f"logs/sample-{n}-z{z}.png", "wb").write(row[0])
+                  import io
+                  from PIL import Image
+                  Image.open(io.BytesIO(row[0])).save(f"logs/sample-{n}-z{z}.png")
           EOF
           done
 

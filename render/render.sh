@@ -209,7 +209,7 @@ else
   python3 "$HERE/render_tiles.py" \
     --style opentopomap.xml --out "$OUT/$NAME-otm.mbtiles" \
     --bbox "$BBOX" --minzoom "$MINZOOM" --maxzoom "$MAXZOOM" --scale "$SCALE" \
-    --name "$TITLE" --processes "$(nproc)"
+    --name "$TITLE" --processes "$(nproc)" --format "${TILE_FORMAT:-png8:m=h}"
 fi
 
 ls -laR "$OUT"
