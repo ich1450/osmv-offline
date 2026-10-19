@@ -163,6 +163,15 @@ end = xml.index("</Layer>", xml.index('<Layer name="roads">')) + len("</Layer>")
 xml = xml[:end] + "\n" + insert + "\n" + xml[end:]
 print("patched: faded-way layer")
 
+# ---------------------------------------------------------------- public parking from zoom 14 (instead of 16)
+sr_path = mapnik_dir / "styles-otm" / "symbols-road.xml"
+sr, n = re.subn(r"&maxscale_zoom16;(\s*&minscale_zoom17;\s*<Filter>\(\[amenity\] = 'parking'\) and \(\[fee\])",
+                r"&maxscale_zoom14;\1", sr_path.read_text())
+if n != 2:
+    sys.exit(f"style patch failed (parking zoom): {n} matches instead of 2")
+sr_path.write_text(sr)
+print("patched: public parking from zoom 14")
+
 # ---------------------------------------------------------------- trail names from zoom 14
 rn_path = mapnik_dir / "styles-otm" / "road-names-text.xml"
 rn = rn_path.read_text()
