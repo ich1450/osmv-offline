@@ -82,5 +82,5 @@ jobs:
         with:
           tag_name: map-${{ github.run_number }}
           name: Offline map – ${{ github.run_number }}
-          body: OpenTopoMap-style offline map (MBTiles, 512 px tiles). Import it in OSM Viewer via "Offline maps…" → "Import map file".
+          body: OpenTopoMap-style offline map (MBTiles, 512 px tiles). Import it in LoriMaps via "Offline maps…" → "Import map file".
           files: out/*.mbtiles

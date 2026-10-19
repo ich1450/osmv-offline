@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">OSM Viewer</string>
+    <string name="app_name">LoriMaps</string>
 
     <string name="stg_cat_hints">Hints</string>
     <string name="stg_map_source_hint_title">Hint: Long tap</string>
