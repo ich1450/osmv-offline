@@ -83,7 +83,7 @@ osm2pgsql --slim -d gis -C 4000 --number-processes 4 \
 
 # ---------------------------------------------------------------- DEM
 step "Downloading Copernicus GLO-30 DEM"
-mkdir -p "$WORK/dem-src"
+rm -rf "$WORK/dem-src"; mkdir -p "$WORK/dem-src"
 for lat in $(seq "$(printf %.0f "$(echo "($BS)/1 - 0.5" | bc -l)")" "$(printf %.0f "$(echo "($BN)/1 - 0.5" | bc -l)")"); do
   for lon in $(seq "$(printf %.0f "$(echo "($BW)/1 - 0.5" | bc -l)")" "$(printf %.0f "$(echo "($BE)/1 - 0.5" | bc -l)")"); do
     if [ "$lat" -lt 0 ]; then ns=S; la=$(( -lat )); else ns=N; la=$lat; fi

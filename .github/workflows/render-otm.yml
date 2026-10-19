@@ -31,30 +31,36 @@ jobs:
         run: |
           mkdir -p logs
           set -o pipefail
-          OUT=$GITHUB_WORKSPACE/out bash render/render.sh 2>&1 | tee logs/render.log
+          source render/region.env
+          for r in $REGIONS; do
+            echo "########## region $r"
+            REGION=$r OUT=$GITHUB_WORKSPACE/out bash render/render.sh 2>&1 | tee -a logs/render.log
+          done
 
       - name: Sample tiles for checking
         if: always()
         run: |
-          source render/region.env
           cp out/preview/*.jpg logs/ 2>/dev/null || true
-          f=out/$NAME-otm.mbtiles
-          [ -f "$f" ] || exit 0
-          sqlite3 "$f" "SELECT zoom_level, count(*), sum(length(tile_data))/1024/1024 || ' MB' FROM tiles GROUP BY zoom_level;" > logs/tile-stats.txt
-          IFS=, read -r W S E N <<< "$BBOX"
-          python3 - "$f" "$W" "$S" "$E" "$N" <<'EOF'
+          for f in out/*.mbtiles; do
+            [ -f "$f" ] || continue
+            n=$(basename "$f" .mbtiles)
+            sqlite3 "$f" "SELECT zoom_level, count(*), sum(length(tile_data))/1024/1024 || ' MB' FROM tiles GROUP BY zoom_level;" > "logs/tile-stats-$n.txt"
+            ls -la "$f" >> "logs/tile-stats-$n.txt"
+            python3 - "$f" "$n" <<'EOF'
           import math, sqlite3, sys
-          f, w, s, e, n = sys.argv[1], *map(float, sys.argv[2:])
-          lon, lat = (w + e) / 2, (s + n) / 2
+          f, n = sys.argv[1], sys.argv[2]
           db = sqlite3.connect(f)
-          for z in (10, 12, 14, 15, 16):
+          w, s, e, nn = map(float, db.execute("SELECT value FROM metadata WHERE name='bounds'").fetchone()[0].split(","))
+          lon, lat = (w + e) / 2, (s + nn) / 2
+          for z in (12, 14, 16):
               t = 2 ** z
               x = int((lon + 180) / 360 * t)
               y = int((1 - math.log(math.tan(math.radians(lat)) + 1 / math.cos(math.radians(lat))) / math.pi) / 2 * t)
               row = db.execute("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?", (z, x, t - 1 - y)).fetchone()
               if row:
-                  open(f"logs/sample-z{z}.png", "wb").write(row[0])
+                  open(f"logs/sample-{n}-z{z}.png", "wb").write(row[0])
           EOF
+          done
 
       # logs and sample tiles go to the branch "render-logs" so they can be read without logging in
       - name: Publish logs
