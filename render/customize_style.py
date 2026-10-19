@@ -61,3 +61,11 @@ xml = xml[:end] + "\n" + PATH_FLAGS + xml[end:]
 print("patched: path flags layer (no access / invisible trail)")
 
 xml_path.write_text(xml)
+
+# 3) viewpoint symbols were hidden when they collided with a peak label at the same spot
+vp = mapnik_dir / "styles-otm" / "symbols-viewpoint.xml"
+text = vp.read_text()
+if 'ignore-placement="true"' not in text:
+    sys.exit("style patch failed (viewpoint overlap): original text not found")
+vp.write_text(text.replace('ignore-placement="true"', 'ignore-placement="true" allow-overlap="true"'))
+print("patched: viewpoint symbols always drawn")

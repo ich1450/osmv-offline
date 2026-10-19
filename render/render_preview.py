@@ -225,7 +225,7 @@ def main():
             print(f"  rendered {path}", flush=True)
 
     # one comparison image per place: font variants side by side with a caption
-    label_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 15 * a.scale)
+    label_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 11 * a.scale)
     w, h = a.width * a.scale, a.height * a.scale
     cap = 30 * a.scale
     cols = 2 if len(fonts) > 2 else len(fonts)
