@@ -145,7 +145,9 @@ def main():
             name, lat, lon, zoom = [v.strip() for v in line.split(";")]
             places.append((name, float(lat), float(lon), int(zoom)))
 
-    fonts = [f for f in a.fonts.split(",") if f in VARIANTS]
+    # skip variants whose main font is not installed (they would only show the fallback font)
+    fonts = [f for f in a.fonts.split(",") if f in VARIANTS and any(c in faces for c in VARIANTS[f]["sans-book"])]
+    print("font variants:", fonts)
     images = {}  # (place, font) -> PIL image
     for font in fonts:
         write_fontset(a.style, font, faces)
