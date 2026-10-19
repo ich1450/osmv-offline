@@ -31,7 +31,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommend
   gdal-bin python3-gdal libgdal-dev python3-mapnik mapnik-utils \
   fonts-dejavu-core fonts-dejavu-extra fonts-unifont fonts-noto-core \
   libdbd-pg-perl bc unzip sqlite3 build-essential python3-pil
-for pkg in fonts-roboto-unhinted fonts-adobe-sourcesans3 fonts-open-sans; do   # optional fonts
+echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+for pkg in fonts-roboto-unhinted fonts-open-sans ttf-mscorefonts-installer fonts-wine; do   # optional fonts
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends "$pkg" || echo "WARN: $pkg not available"
 done
 python3 -c "import mapnik; print('mapnik', mapnik.mapnik_version())"
@@ -167,7 +168,7 @@ cd "$OTM/mapnik"
 if [ "${MODE:-tiles}" = "preview" ]; then
   step "Rendering preview images"
   python3 "$HERE/render_preview.py" --style opentopomap.xml --outdir "$OUT/preview" \
-    --places "$HERE/preview_places.txt" --fonts "${PREVIEW_FONTS:-dejavu,noto,roboto,sourcesans}" --scale "$SCALE"
+    --places "$HERE/preview_places.txt" --fonts "${PREVIEW_FONTS:-dejavu,noto,roboto,opensans}" --only "${PREVIEW_PLACES:-}" --scale "$SCALE"
 else
   step "Rendering tiles"
   [ -n "${FONT:-}" ] && python3 "$HERE/render_preview.py" --style opentopomap.xml --set-font "$FONT"

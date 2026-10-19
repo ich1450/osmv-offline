@@ -68,6 +68,37 @@ VARIANTS = {
         "sans-condensed-bold": ["Open Sans Semibold", "Open Sans SemiBold", "Open Sans Bold"],
         "sans-extralight": ["Open Sans Light"],
     },
+    # 90s/2000s screen fonts (Microsoft core fonts, Tahoma from Wine)
+    "verdana": {
+        "label": "Verdana",
+        "serif-book": ["Georgia Regular", "DejaVu Serif Book"],
+        "sans-book": ["Verdana Regular", "Verdana"],
+        "sans-oblique": ["Verdana Italic"],
+        "sans-condensed": ["Verdana Regular", "Verdana"],
+        "sans-condensed-oblique": ["Verdana Italic"],
+        "sans-condensed-bold": ["Verdana Bold"],
+        "sans-extralight": ["Verdana Regular", "Verdana"],
+    },
+    "trebuchet": {
+        "label": "Trebuchet MS",
+        "serif-book": ["Georgia Regular", "DejaVu Serif Book"],
+        "sans-book": ["Trebuchet MS Regular", "Trebuchet MS"],
+        "sans-oblique": ["Trebuchet MS Italic"],
+        "sans-condensed": ["Trebuchet MS Regular", "Trebuchet MS"],
+        "sans-condensed-oblique": ["Trebuchet MS Italic"],
+        "sans-condensed-bold": ["Trebuchet MS Bold"],
+        "sans-extralight": ["Trebuchet MS Regular", "Trebuchet MS"],
+    },
+    "tahoma": {
+        "label": "Tahoma",
+        "serif-book": ["Georgia Regular", "DejaVu Serif Book"],
+        "sans-book": ["Tahoma Regular", "Tahoma"],
+        "sans-oblique": ["Tahoma Regular", "Tahoma"],
+        "sans-condensed": ["Tahoma Regular", "Tahoma"],
+        "sans-condensed-oblique": ["Tahoma Regular", "Tahoma"],
+        "sans-condensed-bold": ["Tahoma Bold"],
+        "sans-extralight": ["Tahoma Regular", "Tahoma"],
+    },
 }
 FALLBACK = {"serif-book": "DejaVu Serif Book"}
 
@@ -123,6 +154,7 @@ def main():
     p.add_argument("--places")
     p.add_argument("--fonts", default="dejavu")
     p.add_argument("--outdir", default="preview")
+    p.add_argument("--only", default="", help="comma separated place names (default: all)")
     p.add_argument("--scale", type=int, default=2)
     p.add_argument("--width", type=int, default=400)   # in map (unscaled) pixels
     p.add_argument("--height", type=int, default=400)
@@ -130,7 +162,7 @@ def main():
 
     faces = register_fonts()
     print(f"{len(faces)} font faces; sans families:",
-          sorted({f.rsplit(' ', 1)[0] for f in faces if 'Sans' in f or 'Roboto' in f}))
+          sorted({f.rsplit(' ', 1)[0] for f in faces if any(k in f for k in ('Sans', 'Roboto', 'Verdana', 'Trebuchet', 'Tahoma', 'Georgia'))}))
 
     if a.set_font:
         write_fontset(a.style, a.set_font, faces)
@@ -143,7 +175,8 @@ def main():
         line = line.strip()
         if line and not line.startswith("#"):
             name, lat, lon, zoom = [v.strip() for v in line.split(";")]
-            places.append((name, float(lat), float(lon), int(zoom)))
+            if not a.only or name in a.only.split(","):
+                places.append((name, float(lat), float(lon), int(zoom)))
 
     # skip variants whose main font is not installed (they would only show the fallback font)
     fonts = [f for f in a.fonts.split(",") if f in VARIANTS and any(c in faces for c in VARIANTS[f]["sans-book"])]
