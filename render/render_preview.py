@@ -224,6 +224,26 @@ def main():
             images[(name, font)] = Image.open(path).convert("RGB")
             print(f"  rendered {path}", flush=True)
 
+    if len(fonts) == 1:
+        # one font: a single overview sheet with all places
+        font = fonts[0]
+        label_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 11 * a.scale)
+        w, h = a.width * a.scale, a.height * a.scale
+        cap = 24 * a.scale
+        cols = 2 if len(places) > 1 else 1
+        rows = math.ceil(len(places) / cols)
+        sheet = Image.new("RGB", (cols * w + (cols - 1) * 8, rows * (h + cap) + (rows - 1) * 8), "white")
+        d = ImageDraw.Draw(sheet)
+        for i, (name, lat, lon, zoom) in enumerate(places):
+            x0 = (i % cols) * (w + 8)
+            y0 = (i // cols) * (h + cap + 8)
+            d.text((x0 + 10, y0 + 4), f"{name.replace('_', ' ')}  ·  Zoom {zoom}  ·  {lat:.4f}, {lon:.4f}", fill="black", font=label_font)
+            sheet.paste(images[(name, font)], (x0, y0 + cap))
+        out = os.path.join(a.outdir, "overview.jpg")
+        sheet.save(out, "jpeg", quality=88)
+        print(f"overview {out}")
+        return
+
     # one comparison image per place: font variants side by side with a caption
     label_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 11 * a.scale)
     w, h = a.width * a.scale, a.height * a.scale

@@ -174,7 +174,21 @@ if [ "${MODE:-tiles}" = "preview" ]; then
   ENV="ST_Transform(ST_MakeEnvelope($W,$S,$E,$N,4326),3857)"
   psql -d gis -At -F';' >> "$PLACES" <<SQL
 SELECT 'Aussichtspunkt', ST_Y(p), ST_X(p), 16 FROM (SELECT ST_Transform(way,4326) p FROM planet_osm_point
-  WHERE tourism='viewpoint' AND way && $ENV AND (direction IS NULL OR direction='') ORDER BY (name IS NULL), osm_id LIMIT 1) t;
+  WHERE tourism='viewpoint' AND way && $ENV ORDER BY (name IS NULL), osm_id LIMIT 1) t;
+SELECT 'Zeltplatz', ST_Y(p), ST_X(p), 15 FROM (
+  SELECT ST_Transform(way,4326) p, name FROM planet_osm_point WHERE tourism='camp_site' AND way && $ENV
+  UNION ALL SELECT ST_Transform(ST_PointOnSurface(way),4326), name FROM planet_osm_polygon WHERE tourism='camp_site' AND way && $ENV
+  ORDER BY 2 NULLS LAST LIMIT 1) t;
+SELECT 'Tor_verschlossen', ST_Y(p), ST_X(p), 15 FROM (SELECT ST_Transform(way,4326) p FROM planet_osm_point
+  WHERE barrier IN ('gate','lift_gate','swing_gate','chain','bar') AND locked='yes' AND way && $ENV ORDER BY osm_id LIMIT 1) t;
+SELECT 'Pisten', ST_Y(p), ST_X(p), 14 FROM (
+  SELECT ST_Transform(c,4326) p, (SELECT count(DISTINCT COALESCE(o.tracktype,'?')) FROM planet_osm_line o
+    WHERE o.highway='track' AND ST_DWithin(o.way, c, 1500)) n
+  FROM (SELECT ST_Centroid(way) c FROM planet_osm_line WHERE highway='track' AND way && $ENV ORDER BY random() LIMIT 400) cand
+  ORDER BY n DESC LIMIT 1) t;
+SELECT 'Pisten_4WD', ST_Y(p), ST_X(p), 15 FROM (SELECT ST_Transform(ST_LineInterpolatePoint(way,0.5),4326) p FROM planet_osm_line
+  WHERE highway='track' AND ("4wd_only"='yes' OR smoothness IN ('very_bad','horrible','very_horrible','impassable'))
+  AND way && $ENV AND GeometryType(way)='LINESTRING' ORDER BY ST_Length(way) DESC LIMIT 1) t;
 SELECT 'Pfad_unsichtbar', ST_Y(p), ST_X(p), 16 FROM (SELECT ST_Transform(ST_LineInterpolatePoint(way,0.5),4326) p FROM planet_osm_line
   WHERE highway IN ('path','footway','track') AND trail_visibility IN ('no','horrible') AND way && $ENV AND GeometryType(way)='LINESTRING'
   ORDER BY ST_Length(way) DESC LIMIT 1) t;
@@ -182,6 +196,8 @@ SELECT 'Weg_privat', ST_Y(p), ST_X(p), 16 FROM (SELECT ST_Transform(ST_LineInter
   WHERE highway IN ('path','footway','track') AND access IN ('no','private') AND (foot IS NULL OR foot IN ('no','private')) AND way && $ENV
   AND GeometryType(way)='LINESTRING' ORDER BY ST_Length(way) DESC LIMIT 1) t;
 SQL
+  psql -d gis -At -c "SELECT 'tracks by tracktype: ' || string_agg(t || '=' || n, ', ') FROM (SELECT COALESCE(tracktype,'unknown') t, count(*) n FROM planet_osm_line WHERE highway='track' GROUP BY 1 ORDER BY 1) x;"
+  psql -d gis -At -c "SELECT 'camp sites: ' || (SELECT count(*) FROM planet_osm_point WHERE tourism='camp_site') + (SELECT count(*) FROM planet_osm_polygon WHERE tourism='camp_site') || ', locked gates: ' || (SELECT count(*) FROM planet_osm_point WHERE locked='yes') || ', 4wd tracks: ' || (SELECT count(*) FROM planet_osm_line WHERE highway='track' AND (\"4wd_only\"='yes' OR smoothness IN ('very_bad','horrible','very_horrible','impassable')));"
   psql -d gis -At -c "SELECT 'viewpoints: ' || count(*) || ', with direction: ' || count(direction) FROM planet_osm_point WHERE tourism='viewpoint';"
   psql -d gis -At -c "SELECT 'paths not visible: ' || count(*) FILTER (WHERE trail_visibility IN ('no','horrible')) || ', no access: ' || count(*) FILTER (WHERE access IN ('no','private') OR foot IN ('no','private')) FROM planet_osm_line WHERE highway IN ('path','footway','bridleway','track');"
   cat "$PLACES"

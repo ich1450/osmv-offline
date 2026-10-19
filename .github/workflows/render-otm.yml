@@ -37,7 +37,7 @@ jobs:
         if: always()
         run: |
           source render/region.env
-          cp out/preview/compare_*.jpg logs/ 2>/dev/null || true
+          cp out/preview/*.jpg logs/ 2>/dev/null || true
           f=out/$NAME-otm.mbtiles
           [ -f "$f" ] || exit 0
           sqlite3 "$f" "SELECT zoom_level, count(*), sum(length(tile_data))/1024/1024 || ' MB' FROM tiles GROUP BY zoom_level;" > logs/tile-stats.txt
