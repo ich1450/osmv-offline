@@ -22,6 +22,7 @@ BW=$(echo "$W - $BUF" | bc -l); BS=$(echo "$S - $BUF" | bc -l)
 BE=$(echo "$E + $BUF" | bc -l); BN=$(echo "$N + $BUF" | bc -l)
 
 step() { echo; echo "===== $(date +%H:%M:%S) $*"; }
+sub() { echo "----- $(date +%H:%M:%S) $*"; }
 
 # ---------------------------------------------------------------- software
 step "Installing software"
@@ -118,7 +119,7 @@ gdaldem hillshade -q -z 2 -compute_edges -co TILED=YES -co COMPRESS=JPEG warp-30
 
 # contour lines every 10 m from the 30 m DEM, into database "contours", table "contours(way, ele)"
 gdal_contour -q -a ele -i 10 -f GPKG warp-30.tif "$WORK/contours.gpkg"
-ogr2ogr -f PostgreSQL PG:dbname=contours "$WORK/contours.gpkg" -nln contours -a_srs EPSG:3857 \
+ogr2ogr --config PG_USE_COPY YES -gt 100000 -f PostgreSQL PG:dbname=contours "$WORK/contours.gpkg" -nln contours -a_srs EPSG:3857 \
   -lco GEOMETRY_NAME=way -nlt LINESTRING -explodecollections -overwrite
 psql -q -d contours -c "ALTER TABLE contours ALTER COLUMN ele TYPE integer USING round(ele)::integer; DELETE FROM contours WHERE ST_Length(way) < 20; ANALYZE contours;"
 psql -d contours -t -c "SELECT 'contour lines: ' || count(*) FROM contours;"
@@ -149,15 +150,17 @@ for t in planet_osm_point planet_osm_polygon; do
 done
 psql -q -d gis -c "ALTER TABLE planet_osm_point ADD COLUMN IF NOT EXISTS direction text;"
 
-psql -q -d gis < arealabel.sql || echo "WARN: arealabel.sql failed"
-bash update_lowzoom.sh || echo "WARN: update_lowzoom.sh failed"
+timeout 30m psql -q -d gis < arealabel.sql || echo "WARN: arealabel.sql failed"
+timeout 40m bash update_lowzoom.sh || echo "WARN: update_lowzoom.sh failed"
 
 # the update scripts expect fixed home paths; patch them to ours
 for s in update_saddles.sh update_isolations.sh update_parking.sh; do
   sed -e "s#cd ~/OpenTopoMap/#cd $OTM/#" \
       -e "s#cd /home/otmuser/OpenTopoMap/mapnik/tools/#cd $OTM/mapnik/tools/#" \
       -e "s#/home/otmuser/OpenTopoMap#$OTM#g" "$s" > "local_$s"
-  bash "local_$s" || echo "WARN: $s failed"
+  # the peak isolation search radius is reduced (default 100 km is very slow for large areas)
+  [ "$s" = update_isolations.sh ] && sed -i 's#isolation -f \$demfile#isolation -r 25000 -f $demfile#' "local_$s"
+  timeout 40m bash "local_$s" || echo "WARN: $s failed or timed out"
 done
 for f in stationdirection.sql viewpointdirection.sql pitchicon.sql; do
   psql -q -d gis < "$f" || echo "WARN: $f failed"
