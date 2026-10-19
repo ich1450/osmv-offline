@@ -248,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         IMapController mapController = map.getController();
-        mapController.setZoom(Math.round(prefs.getDouble("mapPosZ", 10)));
+        mapController.setZoom((double) Math.round(prefs.getDouble("mapPosZ", 10.0)));
         GeoPoint startPoint = new GeoPoint(prefs.getDouble("mapPosX", 48.8583), prefs.getDouble("mapPosY", 2.2944));
         mapController.setCenter(startPoint);
 
