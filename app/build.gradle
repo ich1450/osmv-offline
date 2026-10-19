@@ -25,6 +25,13 @@ android {
     }
 
     signingConfigs {
+        // fixed debug key (in the repo) so that each GitHub build can be installed as an update
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
         release {
             def keystorePropertiesFile = rootProject.file("keystore.properties")
             if (keystorePropertiesFile.exists()) {

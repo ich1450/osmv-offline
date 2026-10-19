@@ -200,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
         map.setMultiTouchControls(true);
         //map.setTilesScaledToDpi(true);
 
-        map.setTilesScaleFactor(getResources().getDisplayMetrics().density * .8f);
+        map.setTilesScaleFactor(baseTilesScaleFactor());
 
 
         mScaleBarOverlay = new ScaleBarOverlay(map);
@@ -976,12 +976,19 @@ public class MainActivity extends AppCompatActivity {
                     importOfflineMap(uri);
             });
 
+    /** Display size of a 256 px tile relative to its pixels (the original app's choice: slightly enlarged for readability). */
+    private float baseTilesScaleFactor() {
+        return getResources().getDisplayMetrics().density * .8f;
+    }
+
     /** Restores the normal online tile provider after an offline map was shown. */
     private void useOnlineTileProvider() {
         if (activeOfflineFile == null)
             return;
         activeOfflineFile = null;
         map.setTileProvider(new MapTileProviderBasic(getApplicationContext())); // detaches and closes the offline archive
+        map.setTilesScaleFactor(baseTilesScaleFactor());
+        map.getController().setCenter(map.getMapCenter()); // rebuild the projection for the new tile size
     }
 
     /** Shows the given archive file (MBTiles, osmdroid SQLite/ZIP, GEMF) without any network access. */
@@ -1000,12 +1007,18 @@ public class MainActivity extends AppCompatActivity {
                 if (names != null && !names.isEmpty())
                     sourceName = names.iterator().next();
 
+                // high resolution ("@2x", 512 px) tiles are shown at the size of normal tiles,
+                // so they are drawn with (almost) no enlargement and stay sharp
+                int tileSize = OfflineMapManager.readTileSize(file);
+
                 // max zoom 22: beyond the archive's own levels osmdroid scales up the most detailed tiles
-                ITileSource source = new XYTileSource(sourceName, 0, 22, 256, ".png", new String[0]);
+                ITileSource source = new XYTileSource(sourceName, 0, 22, tileSize, ".png", new String[0]);
                 provider.setTileSource(source);
 
                 map.setTileProvider(provider); // detaches the previous provider
                 map.setTileSource(source);
+                map.setTilesScaleFactor(baseTilesScaleFactor() * 256f / tileSize);
+                map.getController().setCenter(map.getMapCenter()); // rebuild the projection for the new tile size
                 activeOfflineFile = file;
             } catch (Exception e) {
                 Toast.makeText(this, getString(R.string.toast_offline_open_failed, e.getMessage()), Toast.LENGTH_LONG).show();

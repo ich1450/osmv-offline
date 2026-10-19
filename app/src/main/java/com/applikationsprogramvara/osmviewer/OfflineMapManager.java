@@ -202,6 +202,30 @@ public class OfflineMapManager {
         return new String(header, 0, 15).equals("SQLite format 3");
     }
 
+    // ---------------------------------------------------------------- tile size
+
+    /**
+     * Pixel width of the tiles in an MBTiles file (256 for normal tiles, 512 for "@2x" tiles).
+     * Read from the first tile's image header; 256 for other formats or on errors.
+     */
+    public static int readTileSize(File file) {
+        if (!isMBTiles(file))
+            return 256;
+        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(file.getPath(), null, SQLiteDatabase.OPEN_READONLY);
+             Cursor c = db.rawQuery("SELECT tile_data FROM tiles LIMIT 1", null)) {
+            if (c.moveToFirst()) {
+                byte[] data = c.getBlob(0);
+                android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+                o.inJustDecodeBounds = true;
+                android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, o);
+                if (o.outWidth >= 64 && o.outWidth <= 2048)
+                    return o.outWidth;
+            }
+        } catch (Exception ignored) {
+        }
+        return 256;
+    }
+
     // ---------------------------------------------------------------- bounds
 
     public interface BoundsListener {
