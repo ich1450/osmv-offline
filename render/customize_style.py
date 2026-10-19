@@ -19,6 +19,8 @@ from pathlib import Path
 
 here = Path(__file__).resolve().parent
 mapnik_dir = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
+# EARLY_TRAILS=2: paths, tracks and trail names two zoom levels earlier (sparse areas like Tasmania)
+EARLY = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] else 0
 xml_path = mapnik_dir / "opentopomap.xml"
 xml = xml_path.read_text()
 
@@ -108,6 +110,40 @@ for zmax, zmin, old_w, w2, w3, d4, w5, d5, old_d5 in (
            rf'<LineSymbolizer stroke="black" stroke-width="[0-9.]+" stroke-dasharray="{old_d5}" />',
            rf'\g<1><LineSymbolizer stroke="black" stroke-width="{w5}" stroke-dasharray="{d5}" />',
            f"zoom {zmax}: grade5")
+
+# paths and tracks two zoom levels earlier (option), slightly thinner on the extra levels
+if EARLY:
+    def scaled(block, factor, zmax, zmin):
+        block = re.sub(r"&maxscale_zoom\d+;", f"&maxscale_zoom{zmax};", block, count=1)
+        block = re.sub(r"&minscale_zoom\d+;", f"&minscale_zoom{zmin};", block, count=1)
+        return re.sub(r'stroke-width="([0-9.]+)"', lambda m: f'stroke-width="{float(m.group(1)) * factor:.2f}"', block)
+
+    PATHS = ("'path'", "'footway'", "'bridleway'", "'steps'")
+    added = 0
+
+    def early(m):
+        global added
+        block = m.group(0)
+        flt = re.search(r"<Filter>(.*?)</Filter>", block, re.S)
+        if not flt:
+            return block
+        f = flt.group(1)
+        if re.search(r"&maxscale_zoom14;\s*&minscale_zoom14;", block):
+            is_track = "'track'" in f
+            grade12 = is_track and "(not" not in f and ("'grade1'" in f or "'grade2'" in f)
+            if (is_track and not grade12) or (not is_track and any(p in f for p in PATHS)):
+                added += 1
+                return block + scaled(block, 0.7, 12, 13)
+        if re.search(r"&maxscale_zoom13;\s*&minscale_zoom13;", block) and "'track'" in f \
+                and ("'grade1'" in f or "'grade2'" in f):
+            added += 1
+            return block + scaled(block, 0.8, 11, 12)
+        return block
+
+    rc = re.sub(r"<Rule>.*?</Rule>", early, rc, flags=re.S)
+    if added < 5:
+        sys.exit(f"style patch failed (early trails): only {added} rules found")
+    print(f"patched: paths and tracks two zoom levels earlier ({added} rules)")
 rc_path.write_text(rc)
 
 # ---------------------------------------------------------------- 4) faded ways, 4WD labels
@@ -126,10 +162,11 @@ roads = patch(" ORDER BY (CASE WHEN highway IN ('motorway'", ") ORDER BY (CASE W
 xml = xml[:start] + roads + xml[end:]
 
 GREY = "#b4b4b4"
+FADED_FROM = 12 if EARLY else 14
 FADED_STYLE = f"""<Style name="own-faded-ways">
-<Rule>&maxscale_zoom14;<Filter>[highway] = 'track'</Filter>
+<Rule>&maxscale_zoom{FADED_FROM};<Filter>[highway] = 'track'</Filter>
 <LineSymbolizer stroke="{GREY}" stroke-width="1.2"/></Rule>
-<Rule>&maxscale_zoom14;<Filter>[highway] != 'track' and [highway] != 'steps'</Filter>
+<Rule>&maxscale_zoom{FADED_FROM};<Filter>[highway] != 'track' and [highway] != 'steps'</Filter>
 <LineSymbolizer stroke="{GREY}" stroke-width="0.9" stroke-dasharray="1.6,1.6"/></Rule>
 <Rule>&maxscale_zoom15;<Filter>[highway] = 'steps'</Filter>
 <LineSymbolizer stroke="{GREY}" stroke-width="2.5" stroke-dasharray="1,1.5"/></Rule>
@@ -180,7 +217,7 @@ trail_rules = "".join(
     f"<Rule>&maxscale_zoom{z};&minscale_zoom{z};<Filter>{TRAILS}</Filter>"
     f'<TextSymbolizer fontset-name="sans-condensed" size="{size}" fill="black" halo-radius="1.5" halo-fill="rgba(255,255,255,0.8)" '
     f'repeat-distance="{rep}" placement="line" max-char-angle-delta="25">[name]</TextSymbolizer></Rule>'
-    for z, size, rep in ((14, 9, 300), (15, 10, 220)))
+    for z, size, rep in (((13, 8, 350),) if EARLY else ()) + ((14, 9, 300), (15, 10, 220)))
 if "<!-- zoom 15 -->" not in rn:
     sys.exit("style patch failed (trail names): original text not found")
 rn_path.write_text(rn.replace("<!-- zoom 15 -->", trail_rules + "\n\t<!-- zoom 15 -->", 1))

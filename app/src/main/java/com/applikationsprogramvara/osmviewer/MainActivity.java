@@ -286,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        if (prefs.getBoolean("GPSisOn", false))
+        if (prefs.getBoolean("GPSisOn", true)) // position shown by default
             switchGPS(); // switch back GPS if before exit or on rotate it was on
 
         tvDebugInfo.setText("");
@@ -527,7 +527,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        boolean anyGranted = false; // precise or approximate location
+        for (int r : grantResults)
+            anyGranted |= r == PackageManager.PERMISSION_GRANTED;
+        if (anyGranted) {
             switch (requestCode) {
                 case REQUEST_LOCATION_JUMP:
                     jumpToLocation();
@@ -537,6 +540,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
             }
         } else {
+            prefs.edit().putBoolean("GPSisOn", false).apply(); // do not ask again on every start
             boolean permanentlyDenied = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION);
 
             new AlertDialog.Builder(this)
@@ -549,10 +553,12 @@ public class MainActivity extends AppCompatActivity {
 
 
     private boolean permissionsGrantedAndLocationServiceEnabled(int requestID) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
+            // Android 12+ ignores a request for FINE location unless COARSE is requested too
             ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
                     requestID);
             return false;
 

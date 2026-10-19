@@ -42,7 +42,7 @@ step "Getting OpenTopoMap style"
 rm -rf "$OTM"
 git clone -q --depth 1 https://github.com/der-stefan/OpenTopoMap "$OTM"
 git -C "$OTM" log -1 --format='OpenTopoMap commit %H (%cd)'
-python3 "$HERE/customize_style.py" "$OTM/mapnik"
+python3 "$HERE/customize_style.py" "$OTM/mapnik" "${EARLY_TRAILS:-0}"
 mkdir -p "$DEM" "$DATA"
 
 # ---------------------------------------------------------------- database
