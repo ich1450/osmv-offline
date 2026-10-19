@@ -202,6 +202,21 @@ public class OfflineMapManager {
         return new String(header, 0, 15).equals("SQLite format 3");
     }
 
+    /** Map title: the "name" stored in an MBTiles file, otherwise the file name without extension. */
+    public static String readTitle(File file) {
+        if (isMBTiles(file)) {
+            try (SQLiteDatabase db = SQLiteDatabase.openDatabase(file.getPath(), null, SQLiteDatabase.OPEN_READONLY);
+                 Cursor c = db.rawQuery("SELECT value FROM metadata WHERE name = 'name'", null)) {
+                if (c.moveToFirst() && c.getString(0) != null && !c.getString(0).trim().isEmpty())
+                    return c.getString(0).trim();
+            } catch (Exception ignored) {
+            }
+        }
+        String name = file.getName();
+        int dot = name.lastIndexOf('.');
+        return dot > 0 ? name.substring(0, dot) : name;
+    }
+
     // ---------------------------------------------------------------- tile size
 
     /**

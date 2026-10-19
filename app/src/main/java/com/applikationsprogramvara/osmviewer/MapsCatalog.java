@@ -181,55 +181,220 @@ public class MapsCatalog {
         load(0);
     }
 
-    public void selectOfflineMap(Context context) {
-        if (offline == null)
-            return;
-        List<File> files = offline.list();
-        String current = mapIndex1 == OFFLINE_INDEX ? prefs.getString(PREF_OFFLINE_FILE, "") : "";
+    // ------------------------------------------------------------------ map menu
 
-        MenuUtils.MenuBuilder menu = new MenuUtils.MenuBuilder(context)
-                .setTitle(R.string.dlg_offline_maps_title);
+    /** One selectable map: an offline file or an online source. */
+    private static class MapEntry {
+        final String key;          // "file:<name>" or "online:<source name>"
+        final String defaultName;
+        final String details;
+        final File file;           // offline only
+        final int index1, index2;  // online only
 
-        int checked = -1;
-        for (int i = 0; i < files.size(); i++) {
-            File f = files.get(i);
-            if (f.getName().equals(current))
-                checked = i;
-            menu.add(offline.describe(f), () -> selectOffline(f, true));
+        MapEntry(String key, String defaultName, String details, File file, int index1, int index2) {
+            this.key = key; this.defaultName = defaultName; this.details = details;
+            this.file = file; this.index1 = index1; this.index2 = index2;
         }
-        menu.add(R.string.menu_offline_import, () -> {
-            if (requestImport != null) requestImport.run();
-        });
-        menu.add(!files.isEmpty(), R.string.menu_offline_delete, () -> deleteOfflineMap(context));
-        menu.add(R.string.menu_offline_folder, () -> new AlertDialog.Builder(context)
-                .setTitle(R.string.dlg_offline_maps_title)
-                .setMessage(context.getString(R.string.dlg_offline_folder_message, offline.getDirectory().getAbsolutePath()))
-                .setPositiveButton(R.string.btn_ok, null)
-                .show());
-
-        menu.show2(checked);
     }
 
-    private void deleteOfflineMap(Context context) {
-        if (offline == null)
-            return;
-        MenuUtils.MenuBuilder menu = new MenuUtils.MenuBuilder(context)
-                .setTitle(R.string.dlg_offline_delete_title);
-        for (File f : offline.list()) {
-            menu.add(offline.describe(f), () -> new AlertDialog.Builder(context)
-                    .setTitle(R.string.dlg_offline_delete_title)
-                    .setMessage(context.getString(R.string.dlg_offline_delete_confirm, f.getName()))
-                    .setPositiveButton(R.string.btn_delete, (d, w) -> {
-                        // close the archive first if this map is currently shown
-                        if (mapIndex1 == OFFLINE_INDEX && f.getName().equals(prefs.getString(PREF_OFFLINE_FILE, "")))
-                            fallbackToOnline();
-                        //noinspection ResultOfMethodCallIgnored
-                        f.delete();
-                    })
-                    .setNegativeButton(R.string.btn_cancel, null)
-                    .show());
+    private String currentKey() {
+        if (mapIndex1 == OFFLINE_INDEX)
+            return "file:" + prefs.getString(PREF_OFFLINE_FILE, "");
+        int i1 = Math.min(mapIndex1, MAP_SOURCES.length - 1);
+        int i2 = Math.min(prefs.getInt("mapSourceIndex2_" + i1, 0), MAP_SOURCES[i1].length - 1);
+        return "online:" + MAP_SOURCES[i1][i2].name();
+    }
+
+    private String displayName(MapEntry e) {
+        String custom = prefs.getString("mapName_" + e.key, null);
+        return custom != null && !custom.trim().isEmpty() ? custom : e.defaultName;
+    }
+
+    private List<MapEntry> offlineEntries() {
+        List<MapEntry> list = new java.util.ArrayList<>();
+        if (offline != null)
+            for (File f : offline.list())
+                list.add(new MapEntry("file:" + f.getName(), OfflineMapManager.readTitle(f), offline.describe(f), f, -1, -1));
+        return list;
+    }
+
+    private List<MapEntry> onlineEntries() {
+        List<MapEntry> list = new java.util.ArrayList<>();
+        for (int i1 = 0; i1 < MAP_SOURCES.length; i1++)
+            for (int i2 = 0; i2 < MAP_SOURCES[i1].length; i2++) {
+                String name = MAP_SOURCES[i1][i2].name();
+                if (name.endsWith(" http")) continue; // fallbacks for very old devices, not worth a menu entry
+                list.add(new MapEntry("online:" + name, name, "online", null, i1, i2));
+            }
+        return list;
+    }
+
+    private void select(MapEntry e) {
+        if (e.file != null) {
+            selectOffline(e.file, true);
+        } else {
+            mapIndex1 = e.index1;
+            mapIndex2 = e.index2;
+            prefs.edit()
+                    .putInt("mapSourceIndex", e.index1)
+                    .putInt("mapSourceIndex2_" + e.index1, e.index2)
+                    .apply();
+            mapSetSource(e.index1);
         }
-        menu.show();
+    }
+
+    /** Map chooser: tap a map to show it, pencil to rename (or delete an offline map), button to add a map file. */
+    public void showMapMenu(Context context) {
+        float dp = context.getResources().getDisplayMetrics().density;
+        android.widget.LinearLayout list = new android.widget.LinearLayout(context);
+        list.setOrientation(android.widget.LinearLayout.VERTICAL);
+        list.setPadding(0, (int) (4 * dp), 0, (int) (4 * dp));
+        android.widget.ScrollView scroll = new android.widget.ScrollView(context);
+        scroll.addView(list);
+
+        AlertDialog dialog = new AlertDialog.Builder(context)
+                .setTitle(R.string.dlg_select_map_title)
+                .setView(scroll)
+                .setNeutralButton(R.string.btn_add_map, (d, w) -> {
+                    if (requestImport != null) requestImport.run();
+                })
+                .setNegativeButton(R.string.btn_cancel, null)
+                .create();
+
+        String current = currentKey();
+        List<MapEntry> offlineMaps = offlineEntries();
+
+        addHeader(list, context.getString(R.string.header_offline_maps), dp);
+        if (offlineMaps.isEmpty()) {
+            android.widget.TextView hint = new android.widget.TextView(context);
+            hint.setText(R.string.hint_no_offline_maps);
+            hint.setPadding((int) (24 * dp), (int) (8 * dp), (int) (24 * dp), (int) (12 * dp));
+            hint.setAlpha(0.7f);
+            list.addView(hint);
+        }
+        for (MapEntry e : offlineMaps)
+            addRow(list, dialog, e, e.key.equals(current), dp);
+
+        if (offline != null) {
+            addHeader(list, context.getString(R.string.header_online_maps), dp);
+            for (MapEntry e : onlineEntries())
+                addRow(list, dialog, e, e.key.equals(current), dp);
+        }
+
+        dialog.show();
+    }
+
+    private void addHeader(android.widget.LinearLayout list, String text, float dp) {
+        android.widget.TextView header = new android.widget.TextView(list.getContext());
+        header.setText(text.toUpperCase(java.util.Locale.getDefault()));
+        header.setTextSize(13);
+        header.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        header.setAlpha(0.6f);
+        header.setPadding((int) (24 * dp), (int) (14 * dp), (int) (24 * dp), (int) (4 * dp));
+        list.addView(header);
+    }
+
+    private void addRow(android.widget.LinearLayout list, AlertDialog dialog, MapEntry e, boolean selected, float dp) {
+        Context context = list.getContext();
+        android.widget.LinearLayout row = new android.widget.LinearLayout(context);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding((int) (16 * dp), (int) (6 * dp), (int) (8 * dp), (int) (6 * dp));
+        row.setMinimumHeight((int) (56 * dp));
+        android.util.TypedValue tv = new android.util.TypedValue();
+        context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, tv, true);
+        row.setBackgroundResource(tv.resourceId);
+
+        android.widget.RadioButton radio = new android.widget.RadioButton(context);
+        radio.setChecked(selected);
+        radio.setClickable(false);
+        radio.setFocusable(false);
+        row.addView(radio);
+
+        android.widget.LinearLayout texts = new android.widget.LinearLayout(context);
+        texts.setOrientation(android.widget.LinearLayout.VERTICAL);
+        texts.setPadding((int) (8 * dp), 0, (int) (8 * dp), 0);
+        android.widget.TextView name = new android.widget.TextView(context);
+        name.setText(displayName(e));
+        name.setTextSize(18);
+        texts.addView(name);
+        android.widget.TextView details = new android.widget.TextView(context);
+        details.setText(e.details);
+        details.setTextSize(13);
+        details.setAlpha(0.6f);
+        texts.addView(details);
+        row.addView(texts, new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        android.widget.ImageButton edit = new android.widget.ImageButton(context);
+        edit.setImageResource(R.drawable.ic_edit);
+        edit.setContentDescription(context.getString(R.string.dlg_rename_title));
+        context.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, tv, true);
+        edit.setBackgroundResource(tv.resourceId);
+        edit.setColorFilter(name.getCurrentTextColor());
+        edit.setAlpha(0.7f);
+        int pad = (int) (12 * dp);
+        edit.setPadding(pad, pad, pad, pad);
+        edit.setOnClickListener(v -> {
+            dialog.dismiss();
+            showRenameDialog(context, e);
+        });
+        row.addView(edit);
+
+        row.setOnClickListener(v -> {
+            dialog.dismiss();
+            select(e);
+        });
+        list.addView(row);
+    }
+
+    private void showRenameDialog(Context context, MapEntry e) {
+        float dp = context.getResources().getDisplayMetrics().density;
+        android.widget.EditText input = new android.widget.EditText(context);
+        input.setSingleLine(true);
+        input.setText(displayName(e));
+        input.setSelectAllOnFocus(true);
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(context);
+        frame.setPadding((int) (20 * dp), (int) (8 * dp), (int) (20 * dp), 0);
+        frame.addView(input);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context)
+                .setTitle(R.string.dlg_rename_title)
+                .setView(frame)
+                .setPositiveButton(R.string.btn_ok, (d, w) -> {
+                    String text = input.getText().toString().trim();
+                    if (text.isEmpty() || text.equals(e.defaultName))
+                        prefs.edit().remove("mapName_" + e.key).apply();
+                    else
+                        prefs.edit().putString("mapName_" + e.key, text).apply();
+                    showMapMenu(context);
+                })
+                .setNegativeButton(R.string.btn_cancel, (d, w) -> showMapMenu(context));
+        if (e.file != null)
+            builder.setNeutralButton(R.string.btn_delete, (d, w) -> confirmDelete(context, e));
+        AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(d -> {
+            input.requestFocus();
+            if (dialog.getWindow() != null)
+                dialog.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        });
+        dialog.show();
+    }
+
+    private void confirmDelete(Context context, MapEntry e) {
+        new AlertDialog.Builder(context)
+                .setTitle(R.string.dlg_offline_delete_title)
+                .setMessage(context.getString(R.string.dlg_offline_delete_confirm, displayName(e)))
+                .setPositiveButton(R.string.btn_delete, (d, w) -> {
+                    // close the archive first if this map is currently shown
+                    if (mapIndex1 == OFFLINE_INDEX && e.file.getName().equals(prefs.getString(PREF_OFFLINE_FILE, "")))
+                        fallbackToOnline();
+                    //noinspection ResultOfMethodCallIgnored
+                    e.file.delete();
+                    prefs.edit().remove("mapName_" + e.key).apply();
+                    showMapMenu(context);
+                })
+                .setNegativeButton(R.string.btn_cancel, (d, w) -> showMapMenu(context))
+                .show();
     }
 
     public void loadOverlay() {
@@ -248,7 +413,7 @@ public class MapsCatalog {
 
     public void selectSource(Context context) {
         if (mapIndex1 == OFFLINE_INDEX && offline != null) {
-            selectOfflineMap(context);
+            showMapMenu(context);
             return;
         }
 
@@ -270,8 +435,6 @@ public class MapsCatalog {
                 mapSetSource(index1);
             });
         }
-
-        menu.add(offline != null, R.string.menu_offline_maps, () -> selectOfflineMap(context));
 
         menu.show2(mapIndex2);
     }

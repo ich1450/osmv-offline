@@ -24,7 +24,7 @@
     <string name="toast_error_value_low">Entered value is too low</string>
     <string name="toast_error_value_high">Entered value is too high</string>
 
-    <string name="btn_change_map_source">Tap: Switch map - General, topographic or offline\nLong tap: Change map source / offline maps</string>
+    <string name="btn_change_map_source">Select map</string>
     <string name="btn_change_overlay_source">Tap: Switch overlay\nLong tap: Change overlay source</string>
     <string name="btn_gps">Display your position on the map</string>
     <string name="btn_location">Tap: Jump to your location\nLong tap: follow your location.</string>
@@ -55,6 +55,14 @@
 
     <string name="dlg_select_map_source_title">Select source</string>
     <string name="dlg_select_overlay_source_title">Select overlay</string>
+
+    <!-- map chooser -->
+    <string name="dlg_select_map_title">Select map</string>
+    <string name="header_offline_maps">Offline maps</string>
+    <string name="header_online_maps">Online maps</string>
+    <string name="btn_add_map">+ Add map</string>
+    <string name="dlg_rename_title">Rename map</string>
+    <string name="hint_no_offline_maps">No offline maps yet. Tap \"+ Add map\" to import an .mbtiles file.</string>
 
     <!-- offline maps -->
     <string name="menu_offline_maps">Offline maps…</string>

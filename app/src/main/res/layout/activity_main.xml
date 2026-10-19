@@ -79,12 +79,4 @@
 
     </RelativeLayout>
 
-    <androidx.appcompat.widget.AppCompatImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:src="@drawable/ic_center_target"
-        android:contentDescription="Screen center"
-        />
-
 </RelativeLayout>

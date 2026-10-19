@@ -198,6 +198,7 @@ public class MainActivity extends AppCompatActivity {
         //map.getZoomController().
         //map.setBuiltInZoomControls(false);
         map.setMultiTouchControls(true);
+        map.setZoomRounding(true); // pinch zoom snaps to whole zoom levels: tiles are always shown at their native size
         //map.setTilesScaledToDpi(true);
 
         map.setTilesScaleFactor(baseTilesScaleFactor());
@@ -247,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         IMapController mapController = map.getController();
-        mapController.setZoom(prefs.getDouble("mapPosZ", 9.5));
+        mapController.setZoom(Math.round(prefs.getDouble("mapPosZ", 10)));
         GeoPoint startPoint = new GeoPoint(prefs.getDouble("mapPosX", 48.8583), prefs.getDouble("mapPosY", 2.2944));
         mapController.setCenter(startPoint);
 
@@ -515,11 +516,11 @@ public class MainActivity extends AppCompatActivity {
 
 
     void clickChangeSource() {
-        mapsCatalog.nextMap();
+        mapsCatalog.showMapMenu(this);
     }
 
     boolean selectSource() {
-        mapsCatalog.selectSource(this);
+        mapsCatalog.showMapMenu(this);
         return true;
     }
 
@@ -583,14 +584,8 @@ public class MainActivity extends AppCompatActivity {
                 GpsMyLocationProvider myLocationProvider = new GpsMyLocationProvider(this);
 
 
-                mLocationOverlay = new MyLocationNewOverlay(myLocationProvider, map);
-                Bitmap person = getBitmap(this, R.drawable.ic_person);
-                Bitmap arrow = getBitmap(this, R.drawable.ic_navigation);
-
-                mLocationOverlay.setPersonHotspot(person.getWidth() / 2f, person.getHeight() / 2f);
-                mLocationOverlay.setPersonIcon(person);
-
-                mLocationOverlay.setDirectionArrow(person, arrow);
+                // dot with accuracy circle and compass direction (like MyTrails)
+                mLocationOverlay = new LocationMarkerOverlay(myLocationProvider, map);
             }
 
             mLocationOverlay.enableMyLocation();
@@ -1034,7 +1029,11 @@ public class MainActivity extends AppCompatActivity {
         if (jumpToMap)
             offlineMaps.readBounds(file, box -> {
                 if (box != null && file.equals(activeOfflineFile) && !box.contains(map.getMapCenter()))
-                    map.zoomToBoundingBox(box, true);
+                {
+                    // whole zoom level that shows the full map area
+                    double zoom = Math.floor(MapView.getTileSystem().getBoundingBoxZoom(box, map.getWidth(), map.getHeight()));
+                    jump(box.getCenterWithDateLine(), Math.max(zoom, 2));
+                }
             });
     }
 
