@@ -30,7 +30,10 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommend
   postgresql-16-postgis-3 postgresql-contrib osm2pgsql osmium-tool \
   gdal-bin python3-gdal libgdal-dev python3-mapnik mapnik-utils \
   fonts-dejavu-core fonts-dejavu-extra fonts-unifont fonts-noto-core \
-  libdbd-pg-perl bc unzip sqlite3 build-essential
+  libdbd-pg-perl bc unzip sqlite3 build-essential python3-pil
+for pkg in fonts-roboto-unhinted fonts-adobe-sourcesans3 fonts-open-sans; do   # optional fonts
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends "$pkg" || echo "WARN: $pkg not available"
+done
 python3 -c "import mapnik; print('mapnik', mapnik.mapnik_version())"
 
 # ---------------------------------------------------------------- style
@@ -160,12 +163,19 @@ done
 psql -q -d gis -c "ANALYZE;"
 
 # ---------------------------------------------------------------- render
-step "Rendering tiles"
 cd "$OTM/mapnik"
-python3 "$HERE/render_tiles.py" \
-  --style opentopomap.xml --out "$OUT/$NAME-otm.mbtiles" \
-  --bbox "$BBOX" --minzoom "$MINZOOM" --maxzoom "$MAXZOOM" --scale "$SCALE" \
-  --name "$TITLE" --processes "$(nproc)"
+if [ "${MODE:-tiles}" = "preview" ]; then
+  step "Rendering preview images"
+  python3 "$HERE/render_preview.py" --style opentopomap.xml --outdir "$OUT/preview" \
+    --places "$HERE/preview_places.txt" --fonts "${PREVIEW_FONTS:-dejavu,noto,roboto,sourcesans}" --scale "$SCALE"
+else
+  step "Rendering tiles"
+  [ -n "${FONT:-}" ] && python3 "$HERE/render_preview.py" --style opentopomap.xml --set-font "$FONT"
+  python3 "$HERE/render_tiles.py" \
+    --style opentopomap.xml --out "$OUT/$NAME-otm.mbtiles" \
+    --bbox "$BBOX" --minzoom "$MINZOOM" --maxzoom "$MAXZOOM" --scale "$SCALE" \
+    --name "$TITLE" --processes "$(nproc)"
+fi
 
-ls -la "$OUT"
+ls -laR "$OUT"
 step "Done"
