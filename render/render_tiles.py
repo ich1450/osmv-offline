@@ -37,7 +37,7 @@ def tile_bounds(x, y, z):
 
 
 def register_fonts():
-    for root in ("/usr/share/fonts", "/usr/local/share/fonts"):
+    for root in ("/usr/share/fonts", "/usr/local/share/fonts", "/usr/share/wine/fonts"):
         for dirpath, _, files in os.walk(root, followlinks=True):
             for f in files:
                 if f.lower().endswith((".ttf", ".otf", ".ttc")):

@@ -32,7 +32,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommend
   fonts-dejavu-core fonts-dejavu-extra fonts-unifont fonts-noto-core \
   libdbd-pg-perl bc unzip sqlite3 build-essential python3-pil
 echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
-for pkg in fonts-roboto-unhinted fonts-open-sans ttf-mscorefonts-installer fonts-wine; do   # optional fonts
+for pkg in fonts-roboto-unhinted fonts-open-sans ttf-mscorefonts-installer fonts-wine fonts-urw-base35 fonts-texgyre; do   # optional fonts
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends "$pkg" || echo "WARN: $pkg not available"
 done
 python3 -c "import mapnik; print('mapnik', mapnik.mapnik_version())"
@@ -42,6 +42,7 @@ step "Getting OpenTopoMap style"
 rm -rf "$OTM"
 git clone -q --depth 1 https://github.com/der-stefan/OpenTopoMap "$OTM"
 git -C "$OTM" log -1 --format='OpenTopoMap commit %H (%cd)'
+python3 "$HERE/customize_style.py" "$OTM/mapnik"
 mkdir -p "$DEM" "$DATA"
 
 # ---------------------------------------------------------------- database
@@ -167,8 +168,25 @@ psql -q -d gis -c "ANALYZE;"
 cd "$OTM/mapnik"
 if [ "${MODE:-tiles}" = "preview" ]; then
   step "Rendering preview images"
+  # fixed places plus example spots found in the data (viewpoint, invisible path, private way)
+  PLACES="$WORK/places.txt"
+  cp "$HERE/preview_places.txt" "$PLACES"
+  ENV="ST_Transform(ST_MakeEnvelope($W,$S,$E,$N,4326),3857)"
+  psql -d gis -At -F';' >> "$PLACES" <<SQL
+SELECT 'Aussichtspunkt', ST_Y(p), ST_X(p), 16 FROM (SELECT ST_Transform(way,4326) p FROM planet_osm_point
+  WHERE tourism='viewpoint' AND way && $ENV AND (direction IS NULL OR direction='') ORDER BY (name IS NULL), osm_id LIMIT 1) t;
+SELECT 'Pfad_unsichtbar', ST_Y(p), ST_X(p), 16 FROM (SELECT ST_Transform(ST_LineInterpolatePoint(way,0.5),4326) p FROM planet_osm_line
+  WHERE highway IN ('path','footway','track') AND trail_visibility IN ('no','horrible') AND way && $ENV AND GeometryType(way)='LINESTRING'
+  ORDER BY ST_Length(way) DESC LIMIT 1) t;
+SELECT 'Weg_privat', ST_Y(p), ST_X(p), 16 FROM (SELECT ST_Transform(ST_LineInterpolatePoint(way,0.5),4326) p FROM planet_osm_line
+  WHERE highway IN ('path','footway','track') AND access IN ('no','private') AND (foot IS NULL OR foot IN ('no','private')) AND way && $ENV
+  AND GeometryType(way)='LINESTRING' ORDER BY ST_Length(way) DESC LIMIT 1) t;
+SQL
+  psql -d gis -At -c "SELECT 'viewpoints: ' || count(*) || ', with direction: ' || count(direction) FROM planet_osm_point WHERE tourism='viewpoint';"
+  psql -d gis -At -c "SELECT 'paths not visible: ' || count(*) FILTER (WHERE trail_visibility IN ('no','horrible')) || ', no access: ' || count(*) FILTER (WHERE access IN ('no','private') OR foot IN ('no','private')) FROM planet_osm_line WHERE highway IN ('path','footway','bridleway','track');"
+  cat "$PLACES"
   python3 "$HERE/render_preview.py" --style opentopomap.xml --outdir "$OUT/preview" \
-    --places "$HERE/preview_places.txt" --fonts "${PREVIEW_FONTS:-dejavu,noto,roboto,opensans}" --only "${PREVIEW_PLACES:-}" --scale "$SCALE"
+    --places "$PLACES" --fonts "${PREVIEW_FONTS:-dejavu,noto,roboto,opensans}" --only "${PREVIEW_PLACES:-}" --scale "$SCALE"
 else
   step "Rendering tiles"
   [ -n "${FONT:-}" ] && python3 "$HERE/render_preview.py" --style opentopomap.xml --set-font "$FONT"

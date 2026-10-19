@@ -99,12 +99,45 @@ VARIANTS = {
         "sans-condensed-bold": ["Tahoma Bold"],
         "sans-extralight": ["Tahoma Regular", "Tahoma"],
     },
+    # Helvetica-like (URW Nimbus Sans, with the narrow cut for condensed labels)
+    "helvetica": {
+        "label": "Nimbus Sans (Helvetica)",
+        "serif-book": ["C059 Roman", "Nimbus Roman Regular", "DejaVu Serif Book"],
+        "sans-book": ["Nimbus Sans Regular", "TeX Gyre Heros Regular"],
+        "sans-oblique": ["Nimbus Sans Italic", "Nimbus Sans Oblique", "TeX Gyre Heros Italic"],
+        "sans-condensed": ["Nimbus Sans Narrow Regular", "TeX Gyre Heros Cn Regular", "Nimbus Sans Regular"],
+        "sans-condensed-oblique": ["Nimbus Sans Narrow Oblique", "Nimbus Sans Narrow Italic", "TeX Gyre Heros Cn Italic"],
+        "sans-condensed-bold": ["Nimbus Sans Narrow Bold", "TeX Gyre Heros Cn Bold", "Nimbus Sans Bold"],
+        "sans-extralight": ["Nimbus Sans Regular", "TeX Gyre Heros Regular"],
+    },
+    # geometric sans in the spirit of Futura (URW Gothic = Avant Garde Gothic clone)
+    "geometric": {
+        "label": "URW Gothic (geometrisch, à la Futura)",
+        "serif-book": ["C059 Roman", "DejaVu Serif Book"],
+        "sans-book": ["URW Gothic Book", "TeX Gyre Adventor Regular"],
+        "sans-oblique": ["URW Gothic Book Oblique", "URW Gothic Book Italic", "TeX Gyre Adventor Italic"],
+        "sans-condensed": ["URW Gothic Book", "TeX Gyre Adventor Regular"],
+        "sans-condensed-oblique": ["URW Gothic Book Oblique", "URW Gothic Book Italic", "TeX Gyre Adventor Italic"],
+        "sans-condensed-bold": ["URW Gothic Demi", "TeX Gyre Adventor Bold"],
+        "sans-extralight": ["URW Gothic Book", "TeX Gyre Adventor Regular"],
+    },
+    # serif lettering like older Swiss national maps: upright serif for places, italic for nature names
+    "swiss": {
+        "label": "Serifen (alte Landeskarte)",
+        "serif-book": ["C059 Roman", "TeX Gyre Schola Regular"],
+        "sans-book": ["C059 Roman", "TeX Gyre Schola Regular"],
+        "sans-oblique": ["C059 Italic", "TeX Gyre Schola Italic"],
+        "sans-condensed": ["Nimbus Roman Regular", "TeX Gyre Termes Regular"],
+        "sans-condensed-oblique": ["Nimbus Roman Italic", "TeX Gyre Termes Italic"],
+        "sans-condensed-bold": ["Nimbus Roman Bold", "TeX Gyre Termes Bold"],
+        "sans-extralight": ["Nimbus Roman Regular", "TeX Gyre Termes Regular"],
+    },
 }
 FALLBACK = {"serif-book": "DejaVu Serif Book"}
 
 
 def register_fonts():
-    for root in ("/usr/share/fonts", "/usr/local/share/fonts"):
+    for root in ("/usr/share/fonts", "/usr/local/share/fonts", "/usr/share/wine/fonts"):
         for dirpath, _, files in os.walk(root, followlinks=True):
             for f in files:
                 if f.lower().endswith((".ttf", ".otf", ".ttc")):
@@ -162,7 +195,7 @@ def main():
 
     faces = register_fonts()
     print(f"{len(faces)} font faces; sans families:",
-          sorted({f.rsplit(' ', 1)[0] for f in faces if any(k in f for k in ('Sans', 'Roboto', 'Verdana', 'Trebuchet', 'Tahoma', 'Georgia'))}))
+          sorted({f.rsplit(' ', 1)[0] for f in faces if any(k in f for k in ('Sans', 'Roboto', 'Verdana', 'Trebuchet', 'Tahoma', 'Georgia', 'Nimbus', 'URW', 'C059', 'Gyre'))}))
 
     if a.set_font:
         write_fontset(a.style, a.set_font, faces)
