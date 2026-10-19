@@ -6,9 +6,10 @@ instead of being silently skipped.
 
   1. extra OSM keys imported: locked, 4wd_only, smoothness, motor_vehicle
   2. viewpoints without a "direction" tag are drawn (all-round symbol), and never hidden by labels
-  3. tracks in OSM-Carto style: brown, dash pattern by tracktype (grade1 solid ... grade5 dotted),
-     "4WD" label for 4wd_only=yes or very bad smoothness
-  4. paths/tracks not visible on the ground or without public access: light grey instead of black/brown
+  3. OpenTopoMap's black tracks with clearer track types: grade2 thicker than grade3,
+     grade4 densely dashed, grade5 dashed with wide gaps
+  4. paths/tracks not visible on the ground or without public access: light grey;
+     "4WD" next to tracks with 4wd_only=yes or very bad smoothness; trail names from zoom 14
   5. camp sites: green symbol from zoom 11, name from zoom 13
   6. locked gates and barriers: red "no entry" disc from zoom 13
 """
@@ -66,72 +67,83 @@ if 'ignore-placement="true"' not in vp_text:
 vp.write_text(vp_text.replace('ignore-placement="true"', 'ignore-placement="true" allow-overlap="true"'))
 print("patched: viewpoint symbols always drawn")
 
-# ---------------------------------------------------------------- 3+4) tracks and faded ways
+# ---------------------------------------------------------------- 3) track widths and dashes
+# OpenTopoMap's black tracks, with a clearer difference between the track types:
+# grade1 unchanged, grade2 thicker than grade3, grade4 densely dashed, grade5 dashed with wide gaps.
+import re
+rc_path = mapnik_dir / "styles-otm" / "roads-casing.xml"
+rc = rc_path.read_text()
+
+
+def rc_sub(pattern, repl, what, count=1):
+    global rc
+    rc, n = re.subn(pattern, repl, rc)
+    if n != count:
+        sys.exit(f"style patch failed ({what}): {n} matches instead of {count}")
+    print(f"patched: {what}")
+
+
+def rule(zmax, zmin, flt, width, dash=None):
+    d = f' stroke-dasharray="{dash}"' if dash else ""
+    return (f"<Rule>&maxscale_zoom{zmax};&minscale_zoom{zmin};<Filter>{flt}</Filter>"
+            f'<LineSymbolizer stroke="black" stroke-width="{width}"{d} /></Rule>')
+
+
+T = "[highway] = 'track' and [tracktype] = "
+# unknown tracktype keeps OpenTopoMap's former grade2 line, grade2 gets its own (thicker) rule
+rc_sub(r"\(\[tracktype\] = 'grade1' or \[tracktype\] = 'grade3' or \[tracktype\] = 'grade4' or \[tracktype\] = 'grade5' \)\)",
+       "([tracktype] = 'grade1' or [tracktype] = 'grade2' or [tracktype] = 'grade3' or [tracktype] = 'grade4' or [tracktype] = 'grade5' ))",
+       "zoom 14: unknown tracktype without grade2")
+rc_sub(r"\(\[tracktype\] = 'grade1' or \[tracktype\] = 'grade3' or \[tracktype\] = 'grade4' or \[tracktype\] = 'grade5'\) \)",
+       "([tracktype] = 'grade1' or [tracktype] = 'grade2' or [tracktype] = 'grade3' or [tracktype] = 'grade4' or [tracktype] = 'grade5') )",
+       "zoom 15+: unknown tracktype without grade2")
+for zmax, zmin, old_w, w2, w3, d4, w5, d5, old_d5 in (
+        (14, 14, "0.5", "1.4", "0.5", "1.8,1.8", "0.6", "3,6", "3,3"),
+        (15, 17, "1", "2.0", "0.9", "2.4,2.4", "0.9", "4,8", "4,4")):
+    rc_sub(rf"<Rule>\s*&maxscale_zoom{zmax};\s*&minscale_zoom{zmin};\s*<Filter>\[highway\] = 'track' and \(\[tracktype\] = 'grade3' or \[tracktype\] = 'grade4'\)</Filter>\s*"
+           rf'<LineSymbolizer stroke="black" stroke-width="{old_w}" />\s*</Rule>',
+           rule(zmax, zmin, T + "'grade2'", w2) + rule(zmax, zmin, T + "'grade3'", w3) + rule(zmax, zmin, T + "'grade4'", w3, d4),
+           f"zoom {zmax}: grade2/3/4")
+    rc_sub(rf"(<Filter>\[highway\] = 'track' and \[tracktype\] = 'grade5'</Filter>\s*)"
+           rf'<LineSymbolizer stroke="black" stroke-width="[0-9.]+" stroke-dasharray="{old_d5}" />',
+           rf'\g<1><LineSymbolizer stroke="black" stroke-width="{w5}" stroke-dasharray="{d5}" />',
+           f"zoom {zmax}: grade5")
+rc_path.write_text(rc)
+
+# ---------------------------------------------------------------- 4) faded ways, 4WD labels
 NOACCESS = ("(foot IN ('no','private') OR (access IN ('no','private') "
             "AND COALESCE(foot,'') NOT IN ('yes','designated','permissive')))")
 INVISIBLE = "trail_visibility IN ('no','horrible')"
 PATHLIKE = "highway IN ('path','footway','bridleway','steps','cycleway')"
 
-# take tracks and faded path-like ways out of OpenTopoMap's own road layer
+# faded ways are taken out of OpenTopoMap's road layer and drawn light grey in an own layer
 start = xml.index('<Layer name="roads">')
 end = xml.index("</Layer>", start) + len("</Layer>")
 roads = xml[start:end]
-excl = f"NOT COALESCE(highway = 'track' OR ({PATHLIKE} AND ({INVISIBLE} OR {NOACCESS})), false) AND ("
-roads = patch("FROM planet_osm_line WHERE ", "FROM planet_osm_line WHERE " + excl, "roads layer: exclude tracks", roads)
+excl = f"NOT COALESCE((highway = 'track' OR {PATHLIKE}) AND ({INVISIBLE} OR {NOACCESS}), false) AND ("
+roads = patch("FROM planet_osm_line WHERE ", "FROM planet_osm_line WHERE " + excl, "roads layer: exclude faded ways", roads)
 roads = patch(" ORDER BY (CASE WHEN highway IN ('motorway'", ") ORDER BY (CASE WHEN highway IN ('motorway'", "roads layer: close condition", roads)
 xml = xml[:start] + roads + xml[end:]
 
-BROWN = "#996600"
 GREY = "#b4b4b4"
-# OSM-Carto track dash patterns (px at scale 1)
-GRADES = [
-    ("grade1", None),
-    ("grade2", "8.8,3.2"),
-    ("grade3", "5.6,4.0"),
-    ("grade4", "3.2,4.8"),
-    ("grade5", "1.6,6.4"),
-    (None, "6,3,1.5,3"),  # tracktype unknown: dash-dot
-]
-# (zoom band entities, width)
-BANDS = [("&maxscale_zoom12;&minscale_zoom13;", 1.0), ("&maxscale_zoom14;&minscale_zoom14;", 1.5),
-         ("&maxscale_zoom15;&minscale_zoom15;", 1.9), ("&maxscale_zoom16;&minscale_zoom18;", 2.4)]
-
-
-def track_rules():
-    out = ['<Style name="own-tracks-casing">']
-    for band, width in BANDS[1:]:
-        out.append(f'<Rule>{band}<LineSymbolizer stroke="#ffffff" stroke-width="{width + 2.2}" stroke-opacity="0.55" stroke-linecap="round"/></Rule>')
-    out.append('</Style><Style name="own-tracks">')
-    for band, width in BANDS:
-        for grade, dash in GRADES:
-            gfilter = f"[tracktype] = '{grade}'" if grade else \
-                "not ([tracktype] = 'grade1' or [tracktype] = 'grade2' or [tracktype] = 'grade3' or [tracktype] = 'grade4' or [tracktype] = 'grade5')"
-            w = width * (1.25 if grade == "grade1" else 1.0)
-            dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
-            for faded, color in (("no", BROWN), ("yes", GREY)):
-                out.append(f"<Rule>{band}<Filter>({gfilter}) and [otm_faded] = '{faded}'</Filter>"
-                           f'<LineSymbolizer stroke="{color}" stroke-width="{w:.2f}"{dash_attr} stroke-linecap="butt"/></Rule>')
-    out.append('</Style><Style name="own-tracks-4wd">')
-    out.append("<Rule>&maxscale_zoom14;<Filter>[otm_4wd] = 'yes'</Filter>"
-               f'<TextSymbolizer fontset-name="sans-condensed-bold" size="8" fill="{BROWN}" halo-radius="1.2" halo-fill="rgba(255,255,255,0.85)" '
-               """placement="line" spacing="260" max-char-angle-delta="20" dy="-6">'4WD'</TextSymbolizer></Rule>""")
-    out.append("</Style>")
-    return "\n".join(out)
-
-
 FADED_STYLE = f"""<Style name="own-faded-ways">
-<Rule>&maxscale_zoom14;<Filter>[highway] != 'steps'</Filter>
+<Rule>&maxscale_zoom14;<Filter>[highway] = 'track'</Filter>
+<LineSymbolizer stroke="{GREY}" stroke-width="1.2"/></Rule>
+<Rule>&maxscale_zoom14;<Filter>[highway] != 'track' and [highway] != 'steps'</Filter>
 <LineSymbolizer stroke="{GREY}" stroke-width="0.9" stroke-dasharray="1.6,1.6"/></Rule>
 <Rule>&maxscale_zoom15;<Filter>[highway] = 'steps'</Filter>
 <LineSymbolizer stroke="{GREY}" stroke-width="2.5" stroke-dasharray="1,1.5"/></Rule>
+</Style>
+<Style name="own-4wd">
+<Rule>&maxscale_zoom14;
+<TextSymbolizer fontset-name="sans-condensed-bold" size="8" fill="#5a3a00" halo-radius="1.2" halo-fill="rgba(255,255,255,0.85)"
+ placement="line" spacing="260" max-char-angle-delta="20" dy="-6">'4WD'</TextSymbolizer></Rule>
 </Style>"""
 
-TRACKS_SQL = one_line(f"""(SELECT way, tracktype,
-  CASE WHEN {NOACCESS} OR {INVISIBLE} THEN 'yes' ELSE 'no' END AS otm_faded,
-  CASE WHEN "4wd_only" = 'yes' OR smoothness IN ('very_bad','horrible','very_horrible','impassable') THEN 'yes' ELSE 'no' END AS otm_4wd
-  FROM planet_osm_line WHERE highway = 'track' AND (tunnel IS NULL OR tunnel = 'no')) AS owntracks""")
 FADED_SQL = one_line(f"""(SELECT way, highway FROM planet_osm_line
-  WHERE {PATHLIKE} AND ({INVISIBLE} OR {NOACCESS})) AS fadedways""")
+  WHERE (highway = 'track' OR {PATHLIKE}) AND ({INVISIBLE} OR {NOACCESS})) AS fadedways""")
+FOURWD_SQL = one_line("""(SELECT way FROM planet_osm_line WHERE highway = 'track'
+  AND ("4wd_only" = 'yes' OR smoothness IN ('very_bad','horrible','very_horrible','impassable'))) AS fourwd""")
 
 
 def xml_escape(sql):
@@ -146,12 +158,24 @@ def layer(name, styles, sql):
             '<Parameter name="dbname">gis</Parameter>&postgis-settings;</Datasource></Layer>')
 
 
-insert = "\n".join([FADED_STYLE, track_rules(),
-                    layer("own-faded-ways", ["own-faded-ways"], FADED_SQL),
-                    layer("own-tracks", ["own-tracks-casing", "own-tracks", "own-tracks-4wd"], TRACKS_SQL)])
+insert = "\n".join([FADED_STYLE, layer("own-faded-ways", ["own-faded-ways"], FADED_SQL)])
 end = xml.index("</Layer>", xml.index('<Layer name="roads">')) + len("</Layer>")
 xml = xml[:end] + "\n" + insert + "\n" + xml[end:]
-print("patched: own track and faded-way layers")
+print("patched: faded-way layer")
+
+# ---------------------------------------------------------------- trail names from zoom 14
+rn_path = mapnik_dir / "styles-otm" / "road-names-text.xml"
+rn = rn_path.read_text()
+TRAILS = "[highway] = 'path' or [highway] = 'footway' or [highway] = 'bridleway' or [highway] = 'track'"
+trail_rules = "".join(
+    f"<Rule>&maxscale_zoom{z};&minscale_zoom{z};<Filter>{TRAILS}</Filter>"
+    f'<TextSymbolizer fontset-name="sans-condensed" size="{size}" fill="black" halo-radius="1.5" halo-fill="rgba(255,255,255,0.8)" '
+    f'repeat-distance="{rep}" placement="line" max-char-angle-delta="25">[name]</TextSymbolizer></Rule>'
+    for z, size, rep in ((14, 9, 300), (15, 10, 220)))
+if "<!-- zoom 15 -->" not in rn:
+    sys.exit("style patch failed (trail names): original text not found")
+rn_path.write_text(rn.replace("<!-- zoom 15 -->", trail_rules + "\n\t<!-- zoom 15 -->", 1))
+print("patched: trail names from zoom 14")
 
 # ---------------------------------------------------------------- 5+6) camp sites, locked gates (on top)
 CAMPS_SQL = one_line("""(SELECT way, name FROM planet_osm_point WHERE tourism = 'camp_site'
@@ -169,6 +193,7 @@ TOP = f"""<Style name="own-camps">
 </Style>
 {layer("own-camps", ["own-camps"], CAMPS_SQL)}
 {layer("own-gates", ["own-gates"], GATES_SQL)}
+{layer("own-4wd", ["own-4wd"], FOURWD_SQL)}
 """
 xml = patch("</Map>", TOP + "</Map>", "camp sites and locked gates on top")
 
