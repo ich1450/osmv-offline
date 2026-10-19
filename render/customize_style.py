@@ -47,12 +47,8 @@ PATH_FLAGS = """
 	<Layer name="path-flags">
 		<StyleName>path-flags</StyleName>
 		<Datasource>
-			<Parameter name="table">(SELECT way,
-				CASE WHEN foot IN ('no','private') OR (access IN ('no','private') AND (foot IS NULL OR foot NOT IN ('yes','designated','permissive'))) THEN 'yes' ELSE 'no' END AS otm_noaccess,
-				CASE WHEN trail_visibility IN ('no','horrible') THEN 'yes' ELSE 'no' END AS otm_invisible
-				FROM planet_osm_line
-				WHERE highway IN ('path','footway','bridleway','track','cycleway','steps','service')
-				AND (foot IN ('no','private') OR access IN ('no','private') OR trail_visibility IN ('no','horrible'))) AS pathflags</Parameter>
+			<Parameter name="table">(SELECT way, CASE WHEN foot IN ('no','private') OR (access IN ('no','private') AND (foot IS NULL OR foot NOT IN ('yes','designated','permissive'))) THEN 'yes' ELSE 'no' END AS otm_noaccess, CASE WHEN trail_visibility IN ('no','horrible') THEN 'yes' ELSE 'no' END AS otm_invisible FROM planet_osm_line WHERE highway IN ('path','footway','bridleway','track','cycleway','steps','service') AND (foot IN ('no','private') OR access IN ('no','private') OR trail_visibility IN ('no','horrible'))) AS pathflags</Parameter>
+			<Parameter name="geometry_field">way</Parameter>
 			<Parameter name="dbname">gis</Parameter>
 			&postgis-settings;
 		</Datasource>
