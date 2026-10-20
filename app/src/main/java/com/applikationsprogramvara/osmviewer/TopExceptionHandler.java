@@ -49,7 +49,7 @@ public class TopExceptionHandler implements Thread.UncaughtExceptionHandler {
 
         context.deleteFile(stack_trace_filename);
 
-        Toast.makeText(context, "Error report is copied to the clipboard", Toast.LENGTH_LONG).show();
+        Toast.makeText(context, "Fehlerbericht wurde in die Zwischenablage kopiert", Toast.LENGTH_LONG).show();
     }
 
     public void uncaughtException(Thread t, Throwable e) {

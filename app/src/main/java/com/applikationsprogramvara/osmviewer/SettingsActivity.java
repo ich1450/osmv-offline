@@ -36,16 +36,43 @@ public class SettingsActivity extends AppCompatActivity {
 
         prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
+        // own layout with toolbar: Android 15+ draws apps edge-to-edge, so the system bars
+        // are kept free here explicitly (otherwise the list scrolls under the status bar)
+        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
+        root.setOrientation(android.widget.LinearLayout.VERTICAL);
+        root.setBackgroundColor(0xFFFFFFFF);
+        androidx.appcompat.widget.Toolbar toolbar = new androidx.appcompat.widget.Toolbar(this);
+        toolbar.setBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.colorPrimaryDark));
+        toolbar.setTitleTextColor(0xFFFFFFFF);
+        root.addView(toolbar, new android.widget.LinearLayout.LayoutParams(-1, -2));
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        container.setId(R.id.settingsContainer);
+        root.addView(container, new android.widget.LinearLayout.LayoutParams(-1, 0, 1f));
+        setContentView(root);
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            androidx.core.graphics.Insets bars = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars() | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
+            toolbar.setPadding(bars.left, bars.top, bars.right, 0);
+            container.setPadding(bars.left, 0, bars.right, bars.bottom);
+            return androidx.core.view.WindowInsetsCompat.CONSUMED;
+        });
+        androidx.core.view.WindowCompat.getInsetsController(getWindow(), root).setAppearanceLightStatusBars(false);
+        androidx.core.view.WindowCompat.getInsetsController(getWindow(), root).setAppearanceLightNavigationBars(true);
+        setSupportActionBar(toolbar);
+        setTitle(R.string.title_settings);
+
         preferenceFragment = new MyPreferenceFragment(this);
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(android.R.id.content, preferenceFragment)
+                .replace(R.id.settingsContainer, preferenceFragment)
                 .commit();
 
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayShowHomeEnabled(true);
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
+        if (toolbar.getNavigationIcon() != null)
+            toolbar.getNavigationIcon().setTint(0xFFFFFFFF);
     }
 
     @Override
@@ -82,6 +109,30 @@ public class SettingsActivity extends AppCompatActivity {
 
         private final SettingsActivity settingsActivity;
 
+        static final String LICENSE_TEXT =
+                "LoriMaps – Offline-Karten mit GPS-Standort\n\n" +
+                "Entwicklung\n" +
+                "Programmiert von Claude (KI-Assistent von Anthropic) im Auftrag und nach den Wünschen des Nutzers: " +
+                "Offline-Karten, Kartenmenü, Standortanzeige, Bedienung, App-Symbol und die selbst gerenderten Karten.\n\n" +
+                "Grundlage\n" +
+                "Die App baut auf der Open-Source-App „Simple OSM Viewer“ (OSMv) auf.\n" +
+                "Copyright (c) 2020 applikationsprogramvara. MIT-Lizenz.\n\n" +
+                "MIT-Lizenz\n" +
+                "Hiermit wird jeder Person, die eine Kopie dieser Software erhält, kostenlos die Erlaubnis erteilt, " +
+                "sie uneingeschränkt zu nutzen, zu kopieren, zu ändern, zusammenzuführen, zu veröffentlichen, zu verbreiten, " +
+                "zu unterlizenzieren und/oder zu verkaufen, sofern der obige Urheberrechtshinweis und dieser Erlaubnishinweis " +
+                "in allen Kopien enthalten sind. Die Software wird ohne jede Gewährleistung bereitgestellt.\n" +
+                "(Massgeblich ist der englische Originaltext in der Datei LICENSE des Quellcodes.)\n\n" +
+                "Verwendete Bibliotheken\n" +
+                "• osmdroid – Apache-Lizenz 2.0\n" +
+                "• AndroidX – Apache-Lizenz 2.0\n\n" +
+                "Kartendaten und Kartenstil\n" +
+                "• Kartendaten © OpenStreetMap-Mitwirkende, Open Database License (ODbL)\n" +
+                "• Kartenstil der eigenen Karten: OpenTopoMap (CC-BY-SA)\n" +
+                "• Höhenmodell: Copernicus DEM, © DLR e.V. 2010–2014 und © Airbus Defence and Space GmbH 2014–2018, " +
+                "bereitgestellt im Rahmen von COPERNICUS durch die Europäische Union und die ESA\n" +
+                "• Online-Karten: es gelten die Bedingungen des jeweiligen Anbieters";
+
         public MyPreferenceFragment(SettingsActivity settingsActivity) {
             this.settingsActivity = settingsActivity;
         }
@@ -110,13 +161,22 @@ public class SettingsActivity extends AppCompatActivity {
             }
 
 
-            setMapSource(0);
-            setMapSource(1);
             setOverlaySource();
 
-            Preference marketLinkPreference = findPreference("MarketLink");
-            marketLinkPreference.setOnPreferenceClickListener(preference -> {
-                Utils.openMarketLink(context);
+            findPreference("License").setOnPreferenceClickListener(preference -> {
+                android.widget.TextView tv = new android.widget.TextView(getContext());
+                int pad = (int) (20 * getResources().getDisplayMetrics().density);
+                tv.setPadding(pad, pad / 2, pad, 0);
+                tv.setTextColor(0xFF222222);
+                tv.setTextSize(15);
+                tv.setText(LICENSE_TEXT);
+                android.widget.ScrollView sv = new android.widget.ScrollView(getContext());
+                sv.addView(tv);
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Lizenz und Entwicklung")
+                        .setView(sv)
+                        .setPositiveButton(R.string.btn_ok, null)
+                        .show();
                 return true;
             });
 
@@ -138,25 +198,6 @@ public class SettingsActivity extends AppCompatActivity {
                     "- " + settingsActivity.getString(R.string.app_name) + ": " + version + (BuildConfig.DEBUG ? " debug" : "") + "\n" +
                     "- " + settingsActivity.getString(R.string.stg_version_lib) + ": " + libVersion
             );
-
-            findPreference("Hint1LongTap").setOnPreferenceClickListener(preference -> {
-                Toast.makeText(getContext(), "No additional information here", Toast.LENGTH_LONG).show();
-                return false;
-            });
-
-            findPreference("Hint2Caching").setOnPreferenceClickListener(preference -> {
-                new AlertDialog.Builder(getContext())
-                        .setTitle("Question")
-                        .setMessage("You can get some additional information on OSMDroid support page. Would you like to open the web-page in your browser?")
-                        .setPositiveButton("Open", (dialog, which) -> {
-                            String address = "https://osmdroid.github.io/osmdroid/Tile-Caching.html";
-                            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(address));
-                            getContext().startActivity(browserIntent);
-                        })
-                        .setNegativeButton("Back", null)
-                        .show();
-                return false;
-            });
 
         }
 

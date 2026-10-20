@@ -401,7 +401,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        boolean showOverlayButton = prefs.getBoolean("ShowOverlayButton", false);
+        boolean showOverlayButton = prefs.getBoolean("ShowOverlayButton", true);
         btnOverlay.setVisibility(showOverlayButton ? View.VISIBLE : View.GONE);
         if (!showOverlayButton)
             mapsCatalog.setOverlay(false);
@@ -1167,7 +1167,7 @@ public class MainActivity extends AppCompatActivity {
                         // option 2: zoom to object borders
 //                        resetRequiredCenter();
 //                        map.zoomToBoundingBox(bb2, false);
-                        Toast.makeText(this, "Navigating to \"" + locationName + "\"", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Gehe zu \"" + locationName + "\"", Toast.LENGTH_LONG).show();
                     });
 
                     // example of returned bounding box
@@ -1207,7 +1207,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             } catch (IOException e) {
                 Log.e("MyApp", e.toString());
-                runOnUiThread(() -> Toast.makeText(this, "Error on searching location", Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> Toast.makeText(this, "Fehler bei der Ortssuche", Toast.LENGTH_LONG).show());
             }
 
 
@@ -1323,7 +1323,7 @@ public class MainActivity extends AppCompatActivity {
             GeoPoint targetPoint = new GeoPoint(lat, lon);
             int targetZoom = zoom;
             map.post(() -> jump(targetPoint, targetZoom));
-            Toast.makeText(this, "Navigating to [" + lat + ", " + lon + "] with zoom " + zoom, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Gehe zu [" + lat + ", " + lon + "], Zoom " + zoom, Toast.LENGTH_LONG).show();
             return;
         }
         //Log.d("MyApp", "Coordinates simple " + lat + " " + lon + " " + name);
@@ -1331,7 +1331,7 @@ public class MainActivity extends AppCompatActivity {
         map.post(() -> jump(targetPoint));
 //        resetRequiredCenter();
 //        map.getController().setCenter(new GeoPoint(lat, lon));
-        Toast.makeText(this, "Navigating to [" + lat + ", " + lon + "]", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Gehe zu [" + lat + ", " + lon + "]", Toast.LENGTH_LONG).show();
     }
 
     void clickSwitchOverlay() {
@@ -1389,6 +1389,29 @@ public class MainActivity extends AppCompatActivity {
 
         GeoPoint gp = (GeoPoint) projection.fromPixels((int) x, (int) y);
 
+        if (!continuousRulerMode) {
+            // simple ruler: the first tap sets the start point, every later tap (or drag)
+            // shows the straight distance from the start point to the touched point
+            List<GeoPoint> current = rulerLine.getActualPoints();
+            GeoPoint start = current.isEmpty() ? gp : new GeoPoint(current.get(0));
+            List<GeoPoint> line = new ArrayList<>();
+            line.add(start);
+            line.add(gp);
+            rulerLine.setPoints(line);
+            rulerPoints.removeAllItems();
+            for (GeoPoint p : line) {
+                OverlayItem item = new OverlayItem("", "", p);
+                item.setMarkerHotspot(OverlayItem.HotspotPlace.CENTER);
+                rulerPoints.addItem(item);
+            }
+            map.postInvalidate();
+            if (current.isEmpty() || rulerLine.getDistance() < 0.5)
+                tvDistance.setText("Start gesetzt – Ziel antippen");
+            else
+                tvDistance.setText(Utils.distanceToStr(rulerLine.getDistance(), this));
+            return;
+        }
+
         float dist = 0;
         List<GeoPoint> points1 = rulerLine.getActualPoints();
         if (points1.size() >= 2)
@@ -1445,21 +1468,18 @@ public class MainActivity extends AppCompatActivity {
 
     /** where the map was before the last jump to the GPS position (for jumping back) */
     private GeoPoint returnCenter = null;
-    private double returnZoom = 0;
     private GeoPoint jumpTarget = null;
 
-    /** first tap: to the GPS position (same zoom); second tap without moving the map: back to where the map was */
+    /** first tap: to the GPS position; second tap without moving the map: back to where the map was. The zoom level never changes. */
     void clickMyLocation() {
         if (returnCenter != null && jumpTarget != null && isNear(jumpTarget)) {
             GeoPoint back = returnCenter;
-            double zoom = returnZoom;
             returnCenter = null;
             jumpTarget = null;
-            jump(back, zoom);
+            jump(back); // only move, the zoom level stays
             return;
         }
         returnCenter = new GeoPoint(map.getMapCenter());
-        returnZoom = map.getZoomLevelDouble();
         jumpTarget = null;
         resetRequiredCenter();
         jumpToLocation();

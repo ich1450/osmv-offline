@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string-array name="unitsOfMeasure" >
-        <item>metric</item>
-        <item>imperial</item>
+        <item>Metrisch (m, km)</item>
+        <item>Imperial (ft, mi)</item>
     </string-array>
-
     <string-array name="unitsOfMeasureAlias" >
         <item>metric</item>
         <item>imperial</item>
     </string-array>
-
 </resources>

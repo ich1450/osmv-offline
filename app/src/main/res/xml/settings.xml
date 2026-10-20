@@ -3,83 +3,97 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:key="mainScreen">
 
-    <PreferenceCategory android:key="General"
-        android:title="@string/stg_cat_hints">
-
-        <Preference android:key="Hint1LongTap"
-            android:title="@string/stg_map_source_hint_title"
-            android:summary="@string/stg_map_source_hint_desc"
-            />
-
-        <Preference android:key="Hint2Caching"
-            android:title="@string/stg_hint2_title"
-            android:summary="@string/stg_hint2_desc"
-            />
-    </PreferenceCategory>
-
-    <PreferenceCategory android:key="General"
-        android:title="@string/stg_cat_general">
+    <PreferenceCategory android:title="@string/stg_cat_general"
+        app:iconSpaceReserved="false">
 
         <CheckBoxPreference android:key="GPSisOn"
             android:title="@string/stg_show_gps_title"
             android:summary="@string/stg_show_gps_desc"
             app:defaultValue="true"
-            />
-
-        <Preference android:key="MapSource0"
-            android:title="@string/stg_map_source0_title"
-            />
-
-        <Preference android:key="MapSource1"
-            android:title="@string/stg_map_source1_title"
-            />
+            app:iconSpaceReserved="false" />
 
         <CheckBoxPreference android:key="ShowOverlayButton"
             android:title="@string/stg_show_overlay_btn_title"
             android:summary="@string/stg_show_overlay_btn_desc"
-            app:defaultValue="false"
-            />
+            app:defaultValue="true"
+            app:iconSpaceReserved="false" />
+
         <Preference android:key="OverlaySource"
             android:title="@string/stg_overlay_source_title"
-            />
+            app:iconSpaceReserved="false" />
 
         <ListPreference android:key="UnitsOfMeasure"
             android:title="@string/stg_units"
             android:defaultValue="metric"
             android:entries="@array/unitsOfMeasure"
             android:entryValues="@array/unitsOfMeasureAlias"
-            />
-
-    </PreferenceCategory>
-
-    <PreferenceCategory android:key="Experimental"
-        android:title="@string/stg_cat_experimental">
-
-        <CheckBoxPreference android:key="ExperimentalOutOfCenterPointer"
-            android:title="Out of center pointer"
-            android:summary="Display pointer at the edge of the screen if tracking is on, but user location is outside of the screen"
-            app:defaultValue="false"
-            />
+            app:iconSpaceReserved="false" />
 
         <CheckBoxPreference android:key="KeepScreenOn"
-            android:title="Keep screen on"
-            android:summary="Requesting Android do not use standard screen timeout. Can be useful for long trips, where scenario does not imply permanent screen interaction, e.g. during bike rides."
+            android:title="Bildschirm nicht ausschalten"
+            android:summary="Der Bildschirm bleibt an, solange die App offen ist (z.B. auf dem Velo). Braucht mehr Akku."
             app:defaultValue="false"
-            />
+            app:iconSpaceReserved="false" />
 
+        <CheckBoxPreference android:key="ExperimentalOutOfCenterPointer"
+            android:title="Richtungspfeil am Bildschirmrand"
+            android:summary="Liegt der eigene Standort ausserhalb des sichtbaren Ausschnitts, zeigt ein Pfeil am Rand die Richtung und Entfernung. Antippen springt hin."
+            app:defaultValue="false"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/stg_cat_about" >
-        <Preference
-            android:key="MarketLink"
-            android:title="@string/stg_marketlink"
-            />
+    <PreferenceCategory android:title="Bedienung"
+        app:iconSpaceReserved="false">
 
-        <Preference
-            android:key="About"
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="Karte bewegen und zoomen"
+            android:summary="Mit einem Finger verschieben. Mit zwei Fingern auseinander- oder zusammenziehen, oder doppelt tippen, um hineinzuzoomen. Der Zoom rastet immer auf ganzen Stufen ein, damit die Karte scharf bleibt." />
+
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="⚙ Einstellungen (oben rechts)"
+            android:summary="Tippen: diese Einstellungen öffnen.\nLange drücken: Lineal-Knopf links daneben ein- oder ausblenden." />
+
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="🗺 Kartenauswahl (oben rechts)"
+            android:summary="Tippen oder lange drücken: Kartenmenü öffnen. Dort eine Karte wählen, mit dem Stift umbenennen oder löschen, oder mit „+ Karte hinzufügen“ eine neue Karte einlesen." />
+
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="Overlay (oben rechts, falls eingeschaltet)"
+            android:summary="Tippen: Wander- oder Velowege über die Karte legen bzw. ausblenden (braucht Internet).\nLange drücken: Overlay-Quelle wählen." />
+
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="📏 Lineal (links neben den Einstellungen)"
+            android:summary="Tippen: Abstand messen. Zuerst den Startpunkt antippen, danach zeigt jeder Tipp (oder Ziehen) die Luftlinie vom Startpunkt bis zu diesem Punkt. Die Karte bewegt man dabei mit zwei Fingern. Nochmals auf das Lineal tippen oder Zurück beendet die Messung.\nLange drücken: Strecke messen – mit dem Finger einem Weg entlangfahren, die Länge wird aufsummiert." />
+
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="＋ / − (unten rechts)"
+            android:summary="Eine Zoomstufe hinein- bzw. hinauszoomen. Die aktuelle Stufe steht klein über dem Standort-Knopf (z.B. „Z 13“)." />
+
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="◎ Standort (unten links)"
+            android:summary="Tippen: Karte zum aktuellen Standort verschieben, die Zoomstufe bleibt gleich.\nNochmals tippen: zurück an die vorherige Stelle (solange man die Karte dazwischen nicht verschoben hat).\nLange drücken: Standort verfolgen ein/aus – die Karte läuft dann mit." />
+
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="Massstab (unten)"
+            android:summary="Der Balken ist in der Mitte geteilt: Die schwarze Hälfte entspricht der halben Strecke." />
+
+        <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
+            android:title="Offline-Karte einlesen"
+            android:summary="1. Die Kartendatei (.mbtiles, auch .sqlite, .zip oder .gemf) aufs Handy laden, z.B. im Browser herunterladen oder per USB kopieren.\n2. Kartenauswahl oben rechts antippen → „+ Karte hinzufügen“.\n3. Die Datei auswählen (meist im Ordner „Downloads“). Sie wird in die App kopiert; danach kann man die Originaldatei löschen.\n4. Die Karte erscheint unter „Offline-Karten“ und die Ansicht springt auf ihr Gebiet.\nOffline-Karten brauchen kein Internet. Nur Raster-Karten (Bilder) werden unterstützt, keine Vektorkarten." />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/stg_cat_about"
+        app:iconSpaceReserved="false">
+
+        <Preference android:key="License"
+            android:title="Lizenz und Entwicklung"
+            android:summary="Wer die App gebaut hat, Lizenzen und Quellen der Kartendaten"
+            app:iconSpaceReserved="false" />
+
+        <Preference android:key="About"
             android:title="@string/stg_versions"
-            />
-
+            android:selectable="false"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
 </PreferenceScreen>
