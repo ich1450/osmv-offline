@@ -96,6 +96,8 @@ def main():
     p.add_argument("--format", default="png8:m=h")
     p.add_argument("--name", default="map")
     p.add_argument("--processes", type=int, default=os.cpu_count())
+    p.add_argument("--shard", type=int, default=0, help="render only this part (0-based) ...")
+    p.add_argument("--shards", type=int, default=1, help="... of this many parts (for parallel jobs)")
     args = p.parse_args()
 
     register_fonts()
@@ -104,6 +106,10 @@ def main():
 
     bbox = [float(v) for v in args.bbox.split(",")]
     tiles = list(tiles_for(bbox, args.minzoom, args.maxzoom))
+    if args.shards > 1:
+        # blocks of 8x8 tiles stay together (shared database pages and caches)
+        tiles = [t for t in tiles if ((t[1] >> 3) * 7919 + (t[2] >> 3) * 104729 + t[0]) % args.shards == args.shard]
+        print(f"shard {args.shard + 1}/{args.shards}", flush=True)
     print(f"{len(tiles)} tiles, zoom {args.minzoom}-{args.maxzoom}, {256 * args.scale} px, {args.processes} processes", flush=True)
 
     if os.path.exists(args.out):
@@ -140,10 +146,15 @@ def main():
 
     start = time.time()
     done = errors = 0
+    zoom_time = {}
+    last = time.time()
     first_error = None
     with mp.Pool(args.processes, initializer=init_worker, initargs=(args,)) as pool:
         for z, x, y, data, err in pool.imap_unordered(render, tiles, chunksize=8):
             done += 1
+            now = time.time()
+            zoom_time[z] = zoom_time.get(z, 0) + (now - last)
+            last = now
             if err:
                 errors += 1
                 first_error = first_error or f"{z}/{x}/{y}: {err}"
@@ -157,6 +168,7 @@ def main():
                 print(f"  {done}/{len(tiles)} tiles, {el / 60:.1f} min, {done / el:.1f} tiles/s, {errors} errors", flush=True)
     db.commit()
     unique = db.execute("SELECT count(*) FROM images").fetchone()[0]
+    print("time per zoom level (wall clock, all processes):", ", ".join(f"z{z}: {t / 60:.1f} min" for z, t in sorted(zoom_time.items())))
     print(f"{done - errors} tiles, {unique} unique images ({done - errors - unique} duplicates stored once)")
     db.execute("VACUUM")
     db.close()

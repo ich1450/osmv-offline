@@ -117,6 +117,11 @@ gdaldem hillshade -q -z 5 -compute_edges -co TILED=YES -co COMPRESS=JPEG warp-50
 gdaldem hillshade -q -z 2 -compute_edges -co TILED=YES -co COMPRESS=JPEG warp-90.tif hillshade-90.tif
 gdaldem hillshade -q -z 2 -compute_edges -co TILED=YES -co COMPRESS=JPEG warp-30.tif hillshade-30m-jpeg.tif
 
+# overviews: lower zoom levels read reduced rasters instead of the full 30 m data
+for f in hillshade-*.tif relief-*.tif; do
+  gdaladdo -q -r average --config COMPRESS_OVERVIEW DEFLATE "$f" 2 4 8 16 32 64 || echo "WARN: no overviews for $f"
+done
+
 # contour lines every 10 m from the 30 m DEM, into database "contours", table "contours(way, ele)"
 gdal_contour -q -a ele -i 10 -f GPKG warp-30.tif "$WORK/contours.gpkg"
 ogr2ogr --config PG_USE_COPY YES -gt 100000 -f PostgreSQL PG:dbname=contours "$WORK/contours.gpkg" -nln contours -a_srs EPSG:3857 \
@@ -209,8 +214,9 @@ SQL
 else
   step "Rendering tiles"
   [ -n "${FONT:-}" ] && python3 "$HERE/render_preview.py" --style opentopomap.xml --set-font "$FONT"
-  python3 "$HERE/render_tiles.py" \
-    --style opentopomap.xml --out "$OUT/$NAME-otm.mbtiles" \
+  PART=""; [ "${SHARDS:-1}" -gt 1 ] && PART=".part$SHARD"
+  python3 "$HERE/render_tiles.py" --shard "${SHARD:-0}" --shards "${SHARDS:-1}" \
+    --style opentopomap.xml --out "$OUT/$NAME-otm$PART.mbtiles" \
     --bbox "$BBOX" --minzoom "$MINZOOM" --maxzoom "$MAXZOOM" --scale "$SCALE" \
     --name "$TITLE" --processes "$(nproc)" --format "${TILE_FORMAT:-png8:m=h}"
 fi

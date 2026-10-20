@@ -51,4 +51,4 @@ build/
 osmviewer_addon/
 
 app/src/test/
-app/src/androidTest/
+app/src/androidTest/__pycache__/
