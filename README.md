@@ -21,7 +21,7 @@ und Touren abseits des Mobilfunknetzes, z.B. in Tasmanien. Die Karten sind eigen
   nochmals tippen springt zurück an die vorherige Stelle und Zoomstufe. Lange drücken: Standort verfolgen.
 - **Massstab** über die ganze Breite, in der Mitte geteilt (halbe Strecke ablesbar), metrisch oder imperial.
 - **Lineal:** Einstellungs-Knopf lange drücken blendet es ein.
-- Online-Karten (OpenStreetMap, OpenTopoMap usw.) gibt es weiterhin im Kartenmenü.
+- Online-Karten im Kartenmenü: OpenTopoMap (Standard), OpenCycleMap (API-Schlüssel von Thunderforest in den Einstellungen) und CyclOSM.
 
 Die Karten liegen im app-eigenen Ordner
 `Android/data/com.applikationsprogramvara.osmviewer.offline/files/maps` und sind vom Android-Backup ausgenommen.

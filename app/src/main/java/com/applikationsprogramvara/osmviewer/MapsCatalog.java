@@ -17,31 +17,6 @@ import org.osmdroid.tileprovider.tilesource.XYTileSource;
 
 public class MapsCatalog {
 
-    // copy of TileSourceFactory.MAPNIK with adjusted name
-    private static final OnlineTileSourceBase MAPNIK = new XYTileSource("OpenStreetMap",
-            0, 19, 256, ".png", new String[] {
-                    "https://a.tile.openstreetmap.org/",
-                    "https://b.tile.openstreetmap.org/",
-                    "https://c.tile.openstreetmap.org/" },"© OpenStreetMap contributors",
-            new TileSourcePolicy(2,
-                    TileSourcePolicy.FLAG_NO_BULK
-                    | TileSourcePolicy.FLAG_NO_PREVENTIVE
-                    | TileSourcePolicy.FLAG_USER_AGENT_MEANINGFUL
-                    | TileSourcePolicy.FLAG_USER_AGENT_NORMALIZED
-            ));
-
-    private static final OnlineTileSourceBase MAPNIK_HTTP = new XYTileSource("OpenStreetMap http",
-            0, 19, 256, ".png", new String[]{
-            "http://a.tile.openstreetmap.org/",
-            "http://b.tile.openstreetmap.org/",
-            "http://c.tile.openstreetmap.org/"}, "© OpenStreetMap contributors",
-            new TileSourcePolicy(2,
-                    TileSourcePolicy.FLAG_NO_BULK
-                            | TileSourcePolicy.FLAG_NO_PREVENTIVE
-                            | TileSourcePolicy.FLAG_USER_AGENT_MEANINGFUL
-                            | TileSourcePolicy.FLAG_USER_AGENT_NORMALIZED
-            ));
-
     private static final OnlineTileSourceBase HTTP_OPENTOPOMAP = new XYTileSource("OpenTopoMap http",
             0, 17, 256, ".png", new String[]{
                     "http://a.tile.opentopomap.org/",
@@ -60,22 +35,21 @@ public class MapsCatalog {
                     "https://c.tile-cyclosm.openstreetmap.fr/cyclosm/" },
             "© CyclOSM, Daten © OpenStreetMap-Mitwirkende");
 
+    // OpenStreetMap's own tile servers block this app, so they are not offered.
+    // First category = default: OpenTopoMap
     private static final OnlineTileSourceBase[][] MAP_SOURCES = new OnlineTileSourceBase[][] {
             {
-//                TileSourceFactory.MAPNIK,
-                MAPNIK,
-                MAPNIK_HTTP,
-                OPENCYCLEMAP, // replaces HikeBikeMap at the same position
-                CYCLOSM,
-            }, {
                 TileSourceFactory.OpenTopo,
                 HTTP_OPENTOPOMAP,
+            }, {
+                OPENCYCLEMAP,
+                CYCLOSM,
             }
     };
 
     private static final int[] MAP_ICONS = new int[] {
-            R.drawable.ic_map_usual,
-            R.drawable.ic_map_topo
+            R.drawable.ic_map_topo,
+            R.drawable.ic_map_usual
     };
 
     public static final OnlineTileSourceBase WAY_MARKED_TRAILS_HIKING = new XYTileSource("WayMarkedTrails Hiking",

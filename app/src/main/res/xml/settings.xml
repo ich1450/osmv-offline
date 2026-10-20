@@ -68,7 +68,7 @@
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
             android:title="🗺 Kartenauswahl (oben rechts)"
-            android:summary="Tippen oder lange drücken: Kartenmenü öffnen. Dort eine Karte wählen, mit dem Stift umbenennen oder löschen, oder mit „+ Karte hinzufügen“ eine neue Karte einlesen. Online-Karten (brauchen Internet): OpenStreetMap, OpenCycleMap (mit API-Schlüssel, siehe oben), CyclOSM und OpenTopoMap." />
+            android:summary="Tippen oder lange drücken: Kartenmenü öffnen. Dort eine Karte wählen, mit dem Stift umbenennen oder löschen, oder mit „+ Karte hinzufügen“ eine neue Karte einlesen. Online-Karten (brauchen Internet): OpenTopoMap, OpenCycleMap (mit API-Schlüssel, siehe oben) und CyclOSM." />
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
             android:title="◇ Overlay (oben rechts, nur wenn oben eingeschaltet)"
