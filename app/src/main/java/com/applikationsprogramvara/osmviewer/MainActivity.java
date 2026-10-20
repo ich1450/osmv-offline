@@ -212,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
         map.setZoomRounding(true); // pinch zoom snaps to whole zoom levels: tiles are always shown at their native size
         //map.setTilesScaledToDpi(true);
 
-        map.setTilesScaleFactor(baseTilesScaleFactor());
+        applyTileScale();
 
 
         mScaleBarOverlay = new ScaleBarOverlay(map);
@@ -1004,14 +1004,51 @@ public class MainActivity extends AppCompatActivity {
         return getResources().getDisplayMetrics().density * .8f;
     }
 
+    /** pixel size of the current map's tiles (256, or 512 for "@2x" maps) */
+    private int activeTileSize = 256;
+    /** enlargement chosen in the settings, as applied at the moment */
+    private float currentUserScale = 1f;
+
+    /**
+     * Map size from the settings ("MapScale" in percent). Between two zoom levels the coarser level
+     * can be shown enlarged (larger text, less detail) or the finer level reduced (more detail, smaller text).
+     */
+    private float userScale() {
+        float f;
+        try { f = Integer.parseInt(prefs.getString("MapScale", "100")) / 100f; } catch (Exception e) { f = 1f; }
+        boolean finer = "fine".equals(prefs.getString("MapScaleLevel", "coarse"));
+        if (f >= 1f)
+            return (finer && f > 1f) ? f / 2f : f;
+        return finer ? f : f * 2f;
+    }
+
+    private void applyTileScale() {
+        currentUserScale = userScale();
+        map.setTilesScaleFactor(baseTilesScaleFactor() * 256f / activeTileSize * currentUserScale);
+        if (map.getWidth() > 0)
+            map.getController().setCenter(map.getMapCenter()); // rebuild the projection for the new tile size
+    }
+
+    /** after a change of the map size setting: keep the visible area (the zoom number may shift by one level) */
+    private void applyTileScaleKeepingView() {
+        float before = currentUserScale;
+        float after = userScale();
+        if (before == after) return;
+        double zoom = Math.round(map.getZoomLevelDouble() + Math.log(before / after) / Math.log(2));
+        applyTileScale();
+        map.getController().setZoom(zoom);
+        updateZoomLabel();
+        binding.scaleBar.invalidate();
+    }
+
     /** Restores the normal online tile provider after an offline map was shown. */
     private void useOnlineTileProvider() {
         if (activeOfflineFile == null)
             return;
         activeOfflineFile = null;
         map.setTileProvider(new MapTileProviderBasic(getApplicationContext())); // detaches and closes the offline archive
-        map.setTilesScaleFactor(baseTilesScaleFactor());
-        map.getController().setCenter(map.getMapCenter()); // rebuild the projection for the new tile size
+        activeTileSize = 256;
+        applyTileScale();
     }
 
     /** Shows the given archive file (MBTiles, osmdroid SQLite/ZIP, GEMF) without any network access. */
@@ -1040,8 +1077,8 @@ public class MainActivity extends AppCompatActivity {
 
                 map.setTileProvider(provider); // detaches the previous provider
                 map.setTileSource(source);
-                map.setTilesScaleFactor(baseTilesScaleFactor() * 256f / tileSize);
-                map.getController().setCenter(map.getMapCenter()); // rebuild the projection for the new tile size
+                activeTileSize = tileSize;
+                applyTileScale();
                 activeOfflineFile = file;
             } catch (Exception e) {
                 Toast.makeText(this, getString(R.string.toast_offline_open_failed, e.getMessage()), Toast.LENGTH_LONG).show();
@@ -1138,6 +1175,7 @@ public class MainActivity extends AppCompatActivity {
                 map.getTileProvider().clearTileCache();
             }
             loadSettings();
+            applyTileScaleKeepingView();
             // "show GPS position" is a setting now
             boolean gpsShown = mLocationOverlay != null && map.getOverlays().contains(mLocationOverlay);
             if (prefs.getBoolean("GPSisOn", true) != gpsShown)
