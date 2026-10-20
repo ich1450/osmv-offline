@@ -17,10 +17,12 @@ und Touren abseits des Mobilfunknetzes, z.B. in Tasmanien. Die Karten sind eigen
   die aktuelle Stufe steht klein über dem Standort-Knopf.
 - **GPS-Standort** wie bei MyTrails: roter Punkt, blauer Genauigkeitskreis und Blickrichtungs-Kegel (Kompass).
   Ein-/ausschaltbar in den Einstellungen (Standard: ein).
-- **Standort-Knopf** unten links: einmal tippen springt zum aktuellen Standort (ohne Hinauszoomen),
-  nochmals tippen springt zurück an die vorherige Stelle und Zoomstufe. Lange drücken: Standort verfolgen.
+- **Standort-Knopf** unten links: einmal tippen verschiebt die Karte zum aktuellen Standort,
+  nochmals tippen zurück an die vorherige Stelle; die Zoomstufe bleibt gleich. Lange drücken: Standort verfolgen.
 - **Massstab** über die ganze Breite, in der Mitte geteilt (halbe Strecke ablesbar), metrisch oder imperial.
-- **Lineal:** Einstellungs-Knopf lange drücken blendet es ein.
+- **Lineal** und **Overlay** (Wanderwege): Knöpfe in den Einstellungen einschaltbar (Standard: aus).
+  Das Lineal misst die Luftlinie vom Startpunkt zum angetippten Punkt.
+- **Einstellungen** auf Deutsch mit Erklärung aller Knöpfe und Lizenzangaben.
 - Online-Karten im Kartenmenü: OpenTopoMap (Standard), OpenCycleMap (API-Schlüssel von Thunderforest in den Einstellungen) und CyclOSM.
 
 Die Karten liegen im app-eigenen Ordner
