@@ -1,0 +1,15 @@
+render jobs: success
+merging tasmania-z13-otm: 8 of 8 parts
+merged parts/tasmania-z13-otm.part0.mbtiles
+merged parts/tasmania-z13-otm.part1.mbtiles
+merged parts/tasmania-z13-otm.part2.mbtiles
+merged parts/tasmania-z13-otm.part3.mbtiles
+merged parts/tasmania-z13-otm.part4.mbtiles
+merged parts/tasmania-z13-otm.part5.mbtiles
+merged parts/tasmania-z13-otm.part6.mbtiles
+merged parts/tasmania-z13-otm.part7.mbtiles
+out/tasmania-z13-otm.mbtiles: 11402 tiles, 8529 unique images, 532.0 MB
+total 519588
+drwxr-xr-x  2 runner runner      4096 Oct 20 02:41 .
+drwxr-xr-x 10 runner runner      4096 Oct 20 02:41 ..
+-rw-r--r--  1 runner runner 532049920 Oct 20 02:41 tasmania-z13-otm.mbtiles
