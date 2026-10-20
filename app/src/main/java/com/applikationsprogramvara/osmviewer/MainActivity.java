@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
     @Nullable private File activeOfflineFile; // null while an online source is shown
 
     private ActivityMainBinding binding;
-    MapView map;
+    SnapMapView map;
     TextView tvDebugInfo;
     TextView tvZoom;
     TextView tvSpeed;
@@ -209,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
         //map.getZoomController().
         //map.setBuiltInZoomControls(false);
         map.setMultiTouchControls(true);
-        map.setZoomRounding(true); // pinch zoom snaps to whole zoom levels: tiles are always shown at their native size
+        // pinch zoom snaps to fixed zoom levels (SnapMapView), so tiles are shown at the chosen size
         //map.setTilesScaledToDpi(true);
 
         applyTileScale();
@@ -259,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         IMapController mapController = map.getController();
-        mapController.setZoom((double) Math.round(prefs.getDouble("mapPosZ", 10.0)));
+        mapController.setZoom(map.snap(prefs.getDouble("mapPosZ", 10.0)));
         GeoPoint startPoint = new GeoPoint(prefs.getDouble("mapPosX", 48.8583), prefs.getDouble("mapPosY", 2.2944));
         mapController.setCenter(startPoint);
 
@@ -837,12 +837,11 @@ public class MainActivity extends AppCompatActivity {
             targetZoom += requestedDiff;
             zoomAnimation.cancel();
         } else { // usual case
-            if (startZoom == Math.round(startZoom)) { // user is already on even level
-                targetZoom = Math.round(startZoom + requestedDiff); // zoom to an another even level
-            } else {
-                targetZoom = requestedDiff > 0 ? // zoom to the closest even level
-                        Math.ceil(startZoom) :
-                        Math.floor(startZoom);
+            double offset = map.getZoomOffset();
+            if (Math.abs(map.snap(startZoom) - startZoom) < 1e-6) { // already on a resting level
+                targetZoom = map.snap(startZoom + requestedDiff);
+            } else { // to the closest resting level in this direction
+                targetZoom = (requestedDiff > 0 ? Math.ceil(startZoom - offset) : Math.floor(startZoom - offset)) + offset;
             }
         }
 
@@ -1006,37 +1005,42 @@ public class MainActivity extends AppCompatActivity {
 
     /** pixel size of the current map's tiles (256, or 512 for "@2x" maps) */
     private int activeTileSize = 256;
-    /** enlargement chosen in the settings, as applied at the moment */
-    private float currentUserScale = 1f;
+    /** tile scale factor as applied at the moment (for keeping the view when it changes) */
+    private float currentTileFactor = 0f;
+
+    /** map size from the settings ("MapScale" in percent), 1 = normal */
+    private float userScale() {
+        try { return Integer.parseInt(prefs.getString("MapScale", "100")) / 100f; } catch (Exception e) { return 1f; }
+    }
 
     /**
-     * Map size from the settings ("MapScale" in percent). Between two zoom levels the coarser level
-     * can be shown enlarged (larger text, less detail) or the finer level reduced (more detail, smaller text).
+     * Between two zoom levels (while zooming with two fingers): "fine" keeps the finer level and shows it smaller,
+     * "coarse" switches to the coarser level and shows it larger. Done with the resting zoom n + 0.99 (see SnapMapView).
      */
-    private float userScale() {
-        float f;
-        try { f = Integer.parseInt(prefs.getString("MapScale", "100")) / 100f; } catch (Exception e) { f = 1f; }
-        boolean finer = "fine".equals(prefs.getString("MapScaleLevel", "coarse"));
-        if (f >= 1f)
-            return (finer && f > 1f) ? f / 2f : f;
-        return finer ? f : f * 2f;
+    private double zoomOffset() {
+        return "coarse".equals(prefs.getString("MapScaleLevel", "fine")) ? 0 : 0.99;
+    }
+
+    private float tileFactor() {
+        return (float) (baseTilesScaleFactor() * 256f / activeTileSize * userScale() / Math.pow(2, zoomOffset()));
     }
 
     private void applyTileScale() {
-        currentUserScale = userScale();
-        map.setTilesScaleFactor(baseTilesScaleFactor() * 256f / activeTileSize * currentUserScale);
+        map.setZoomOffset(zoomOffset());
+        currentTileFactor = tileFactor();
+        map.setTilesScaleFactor(currentTileFactor);
         if (map.getWidth() > 0)
             map.getController().setCenter(map.getMapCenter()); // rebuild the projection for the new tile size
     }
 
-    /** after a change of the map size setting: keep the visible area (the zoom number may shift by one level) */
+    /** after a change of the map size settings: keep the visible area as well as possible */
     private void applyTileScaleKeepingView() {
-        float before = currentUserScale;
-        float after = userScale();
+        float before = currentTileFactor;
+        float after = tileFactor();
         if (before == after) return;
-        double zoom = Math.round(map.getZoomLevelDouble() + Math.log(before / after) / Math.log(2));
+        double zoom = map.getZoomLevelDouble() + Math.log(before / after) / Math.log(2);
         applyTileScale();
-        map.getController().setZoom(zoom);
+        map.getController().setZoom(map.snap(zoom));
         updateZoomLabel();
         binding.scaleBar.invalidate();
     }
@@ -1096,7 +1100,7 @@ public class MainActivity extends AppCompatActivity {
                 if (box != null && file.equals(activeOfflineFile) && !box.contains(map.getMapCenter()))
                 {
                     // whole zoom level that shows the full map area
-                    double zoom = Math.floor(MapView.getTileSystem().getBoundingBoxZoom(box, map.getWidth(), map.getHeight()));
+                    double zoom = Math.floor(MapView.getTileSystem().getBoundingBoxZoom(box, map.getWidth(), map.getHeight()) - map.getZoomOffset()) + map.getZoomOffset();
                     jump(box.getCenterWithDateLine(), Math.max(zoom, 2));
                 }
             });
@@ -1524,7 +1528,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateZoomLabel() {
-        binding.tvZoomLevel.setText(String.format(Locale.ROOT, "Z %d", Math.round(map.getZoomLevelDouble())));
+        binding.tvZoomLevel.setText(String.format(Locale.ROOT, "Z %d", map.tileLevel()));
     }
 
     // ------------------------------------------------------------------ "my position" button

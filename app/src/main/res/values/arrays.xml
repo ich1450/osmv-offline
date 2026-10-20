@@ -19,8 +19,8 @@
         <item>175</item><item>200</item>
     </string-array>
     <string-array name="mapScaleLevelNames">
-        <item>Gröbere Stufe vergrössert (grössere Schrift, weniger Details)</item>
-        <item>Genauere Stufe verkleinert (mehr Details, kleinere Schrift)</item>
+        <item>Gröbere Stufe vergrössert zeigen</item>
+        <item>Genauere Stufe verkleinert zeigen</item>
     </string-array>
     <string-array name="mapScaleLevelValues">
         <item>coarse</item>

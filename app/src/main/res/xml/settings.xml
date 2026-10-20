@@ -21,9 +21,9 @@
             app:iconSpaceReserved="false" />
 
         <ListPreference android:key="MapScaleLevel"
-            android:title="Zwischen zwei Zoomstufen"
+            android:title="Beim Zoomen mit zwei Fingern"
             android:summary="%s"
-            android:defaultValue="coarse"
+            android:defaultValue="fine"
             android:entries="@array/mapScaleLevelNames"
             android:entryValues="@array/mapScaleLevelValues"
             app:iconSpaceReserved="false" />
@@ -76,7 +76,7 @@
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
             android:title="Karte bewegen und zoomen"
-            android:summary="Mit einem Finger verschieben. Mit zwei Fingern auseinander- oder zusammenziehen, oder doppelt tippen, um hineinzuzoomen. Der Zoom rastet immer auf ganzen Stufen ein, damit die Karte scharf bleibt. Mit „Kartengrösse“ (oben) lassen sich alle Karten grösser oder kleiner darstellen. Liegt die Grösse zwischen zwei Zoomstufen, entscheidet „Zwischen zwei Zoomstufen“, ob die gröbere Stufe vergrössert (grössere Schrift) oder die genauere verkleinert (mehr Details) gezeigt wird." />
+            android:summary="Mit einem Finger verschieben. Mit zwei Fingern auseinander- oder zusammenziehen, oder doppelt tippen, um hineinzuzoomen. Der Zoom rastet immer auf ganzen Stufen ein, damit die Karte scharf bleibt. Mit „Kartengrösse“ (oben) lassen sich alle Karten grösser oder kleiner darstellen. „Beim Zoomen mit zwei Fingern“ bestimmt, was zwischen zwei Stufen passiert: Entweder bleibt die genauere Stufe und wird kleiner (Standard), oder es wird sofort die gröbere Stufe vergrössert gezeigt. Beim Loslassen rastet die Karte wieder auf der eingestellten Grösse ein." />
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
             android:title="⚙ Einstellungen (oben rechts)"
