@@ -18,6 +18,12 @@
             app:defaultValue="false"
             app:iconSpaceReserved="false" />
 
+        <CheckBoxPreference android:key="ShowRulerButton"
+            android:title="Lineal-Knopf anzeigen"
+            android:summary="Knopf links neben den Einstellungen zum Messen von Abständen (auch mit langem Druck auf die Einstellungen ein-/ausschaltbar)"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false" />
+
         <Preference android:key="OverlaySource"
             android:title="@string/stg_overlay_source_title"
             app:iconSpaceReserved="false" />
@@ -58,7 +64,7 @@
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
             android:title="⚙ Einstellungen (oben rechts)"
-            android:summary="Tippen: diese Einstellungen öffnen.\nLange drücken: Lineal-Knopf links daneben ein- oder ausblenden." />
+            android:summary="Tippen: diese Einstellungen öffnen.\nLange drücken: Lineal-Knopf links daneben ein- oder ausblenden (wie die Einstellung „Lineal-Knopf anzeigen“)." />
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
             android:title="🗺 Kartenauswahl (oben rechts)"
@@ -69,7 +75,7 @@
             android:summary="Tippen: Wander- oder Velowege über die Karte legen bzw. ausblenden (braucht Internet).\nLange drücken: Overlay-Quelle wählen." />
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
-            android:title="📏 Lineal (links neben den Einstellungen)"
+            android:title="📏 Lineal (links neben den Einstellungen, nur wenn oben eingeschaltet)"
             android:summary="Tippen: Abstand messen. Zuerst den Startpunkt antippen, danach zeigt jeder Tipp (oder Ziehen) die Luftlinie vom Startpunkt bis zu diesem Punkt. Die Karte bewegt man dabei mit zwei Fingern. Nochmals auf das Lineal tippen oder Zurück beendet die Messung.\nLange drücken: Strecke messen – mit dem Finger einem Weg entlangfahren, die Länge wird aufsummiert." />
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"

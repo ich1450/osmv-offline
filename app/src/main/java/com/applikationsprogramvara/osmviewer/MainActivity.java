@@ -331,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
         //map.dispatchTouchEvent()
         tvDistance.setVisibility(View.GONE);
 
-        collapseAuxPanel(prefs.getBoolean("AuxButtonsCollapsed", true));
+        collapseAuxPanel(!prefs.getBoolean("ShowRulerButton", false)); // ruler button: setting, off by default
 
         setDebugInfo(false); // debug button removed
 
@@ -416,6 +416,8 @@ public class MainActivity extends AppCompatActivity {
 
         boolean showOverlayButton = prefs.getBoolean("ShowOverlayButton", false);
         btnOverlay.setVisibility(showOverlayButton ? View.VISIBLE : View.GONE);
+        if (btnRuler != null)
+            btnRuler.setVisibility(prefs.getBoolean("ShowRulerButton", false) ? View.VISIBLE : View.GONE);
         if (!showOverlayButton)
             mapsCatalog.setOverlay(false);
 
@@ -1476,7 +1478,7 @@ public class MainActivity extends AppCompatActivity {
     void collapseAuxPanel(boolean collapse) {
         btnRuler.setVisibility(collapse ? View.GONE : View.VISIBLE);
         shiftScaleBar();
-        prefs.edit().putBoolean("AuxButtonsCollapsed", collapse).apply();
+        prefs.edit().putBoolean("ShowRulerButton", !collapse).apply();
     }
 
     private void shiftScaleBar() {
