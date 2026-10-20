@@ -166,6 +166,10 @@ public class OfflineMapManager {
                     else throw new UnsupportedFileException();
                 }
 
+                // incomplete downloads are common with large files: check the database before using it
+                if (isSQLite(part))
+                    checkDatabase(part);
+
                 File target = uniqueFile(dir, displayName);
                 if (!part.renameTo(target)) throw new IOException("cannot rename imported file");
                 MAIN.post(() -> listener.onDone(target));
@@ -178,6 +182,24 @@ public class OfflineMapManager {
                 MAIN.post(() -> listener.onError(e));
             }
         });
+    }
+
+    /** Throws if the SQLite file is damaged or incomplete (quick integrity check plus one tile read). */
+    private static void checkDatabase(File f) throws IOException {
+        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(f.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
+            try (Cursor c = db.rawQuery("PRAGMA quick_check", null)) {
+                if (!c.moveToFirst() || !"ok".equalsIgnoreCase(c.getString(0)))
+                    throw new IOException("Datei ist beschädigt oder unvollständig – bitte nochmals herunterladen");
+            }
+            try (Cursor c = db.rawQuery("SELECT count(*) FROM tiles", null)) {
+                if (!c.moveToFirst() || c.getLong(0) == 0)
+                    throw new IOException("Die Datei enthält keine Kacheln");
+            }
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Datei ist beschädigt oder unvollständig – bitte nochmals herunterladen (" + e.getMessage() + ")");
+        }
     }
 
     private static File uniqueFile(File dir, String name) {

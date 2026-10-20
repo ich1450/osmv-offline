@@ -1001,7 +1001,7 @@ public class MainActivity extends AppCompatActivity {
 
     /** Display size of a 256 px tile relative to its pixels (the original app's choice: slightly enlarged for readability). */
     private float baseTilesScaleFactor() {
-        return getResources().getDisplayMetrics().density * .8f;
+        return getResources().getDisplayMetrics().density * .64f; // 100 % = the former 80 % (user's choice)
     }
 
     /** pixel size of the current map's tiles (256, or 512 for "@2x" maps) */
