@@ -20,6 +20,12 @@
     <PreferenceCategory android:key="General"
         android:title="@string/stg_cat_general">
 
+        <CheckBoxPreference android:key="GPSisOn"
+            android:title="@string/stg_show_gps_title"
+            android:summary="@string/stg_show_gps_desc"
+            app:defaultValue="true"
+            />
+
         <Preference android:key="MapSource0"
             android:title="@string/stg_map_source0_title"
             />

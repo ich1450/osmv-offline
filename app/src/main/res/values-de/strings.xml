@@ -19,4 +19,6 @@
     <string name="toast_offline_unsupported">Dateityp nicht unterstützt. Bitte .mbtiles, .sqlite, .zip oder .gemf verwenden</string>
     <string name="toast_offline_no_space">Nicht genug Speicherplatz (%1$s benötigt)</string>
     <string name="toast_offline_open_failed">Offline-Karte kann nicht geöffnet werden: %1$s</string>
+    <string name="stg_show_gps_title">GPS-Position anzeigen</string>
+    <string name="stg_show_gps_desc">Standortpunkt mit Genauigkeit und Richtung auf der Karte</string>
 </resources>

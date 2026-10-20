@@ -13,4 +13,12 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="RoundMapButton">
+        <item name="android:layout_width">@dimen/roundBtn</item>
+        <item name="android:layout_height">@dimen/roundBtn</item>
+        <item name="android:background">@drawable/btn_round</item>
+        <item name="android:padding">@dimen/roundBtnPadding</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:elevation">0dp</item>
+    </style>
 </resources>

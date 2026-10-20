@@ -59,17 +59,50 @@
             android:id="@+id/textLabelsPanel"
             />
 
-        <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/btnDebug"
+        <!-- bottom left: zoom level and "go to my position" -->
+        <LinearLayout
+            android:id="@+id/gpsPanel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_debug"
-            android:background="@color/btnBack"
-            android:padding="@dimen/btnPadding"
-            android:contentDescription="@string/btn_debug_info"
-
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
             android:layout_alignParentBottom="true"
-            />
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_margin="@dimen/screenMargin">
+
+            <TextView
+                android:id="@+id/tvZoomLevel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="Z 10"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:shadowColor="#FFFFFFFF"
+                android:shadowRadius="4"
+                android:shadowDx="0"
+                android:shadowDy="0" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btnJumpToLocation"
+                style="@style/RoundMapButton"
+                android:src="@drawable/ic_my_location"
+                android:contentDescription="@string/btn_location" />
+        </LinearLayout>
+
+        <!-- scale bar from the GPS button to the right edge -->
+        <com.applikationsprogramvara.osmviewer.ScaleBarView
+            android:id="@+id/scaleBar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/scaleBarHeight"
+            android:layout_toRightOf="@id/gpsPanel"
+            android:layout_toEndOf="@id/gpsPanel"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="@dimen/screenMargin"
+            android:layout_marginRight="@dimen/screenMargin"
+            android:layout_marginEnd="@dimen/screenMargin" />
 
         <include
             layout="@layout/debug_info_panel"

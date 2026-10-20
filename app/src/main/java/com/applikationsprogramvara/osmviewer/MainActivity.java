@@ -161,33 +161,31 @@ public class MainActivity extends AppCompatActivity {
 
         map = binding.map;
         tvDebugInfo = binding.debugLayout.tvDebugInfo;
-        tvZoom = binding.mainButtons.tvZoom;
+        tvZoom = binding.auxButtons.tvZoom;
         tvSpeed = binding.textLabelsPanel.tvSpeed;
         tvDistance = binding.textLabelsPanel.tvDistance;
         tvAltitude = binding.debugLayout.tvAltitude;
-        btnJumpToLocation = binding.mainButtons.btnJumpToLocation;
-        btnJumpToLocation.setOnClickListener(view -> jumpToLocation());
+        btnJumpToLocation = binding.btnJumpToLocation;
+        btnJumpToLocation.setOnClickListener(view -> clickMyLocation());
         btnJumpToLocation.setOnLongClickListener(view -> followMode());
         btnGPS = binding.mainButtons.btnGPS;
         btnGPS.setOnClickListener(view -> switchGPS());
-        btnChangeSource = binding.auxButtons.btnChangeSource;
+        btnChangeSource = binding.mainButtons.btnChangeSource;
         btnChangeSource.setOnClickListener(view -> clickChangeSource());
         btnChangeSource.setOnLongClickListener(view -> selectSource());
         userTouchSurface = binding.userTouchSurface;
-        btnRuler = binding.auxButtons.collapsiblePanel.btnRuler;
+        btnRuler = binding.mainButtons.collapsiblePanel.btnRuler;
         btnRuler.setOnClickListener(view -> switchRulerSimple());
         btnRuler.setOnLongClickListener(view -> switchRulerContinuous());
-        btnOverlay = binding.auxButtons.btnOverlay;
+        btnOverlay = binding.mainButtons.btnOverlay;
         btnOverlay.setOnClickListener(view -> clickSwitchOverlay());
         btnOverlay.setOnLongClickListener(view -> switchOverlaySecondary());
         mainLayout = binding.mainLayout;
         outOfScreenPointer = binding.outOfScreenPointer;
-        binding.mainButtons.btnZoomOut.setOnClickListener(view -> clickZoomOut());
-        binding.mainButtons.btnZoomIn.setOnClickListener(view -> clickZoomIn());
-        binding.btnDebug.setOnClickListener(view -> showDebugInfo());
-        binding.btnDebug.setOnLongClickListener(view -> testclick());
-        binding.auxButtons.collapsiblePanel.btnSettings.setOnClickListener(view -> openSettings());
-        binding.auxButtons.collapsiblePanel.btnSettings.setOnLongClickListener(view -> showAuxButtons());
+        binding.auxButtons.btnZoomOut.setOnClickListener(view -> clickZoomOut());
+        binding.auxButtons.btnZoomIn.setOnClickListener(view -> clickZoomIn());
+        binding.mainButtons.collapsiblePanel.btnSettings.setOnClickListener(view -> openSettings());
+        binding.mainButtons.collapsiblePanel.btnSettings.setOnLongClickListener(view -> showAuxButtons());
 
         prefs = EnhancedSharedPreferences.getDefaultSharedPreferences(this);
 
@@ -253,7 +251,8 @@ public class MainActivity extends AppCompatActivity {
         mapController.setCenter(startPoint);
 
         mainLayout.addOnLayoutChangeListener((v, l, t, r, b, l2, t2, r2, b2) -> shiftScaleBar());
-        map.getOverlays().add(mScaleBarOverlay);
+        binding.scaleBar.setMap(map);
+        updateZoomLabel();
 
         map.getOverlays().add(0, new Overlay() {
             @Override
@@ -268,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean onScroll(ScrollEvent event) {
                 if (event.getX() != 0 || event.getY() != 0) // manual drag
                     resetRequiredCenter();
+                binding.scaleBar.invalidate();
 //                Log.d("MyApp3", "onScroll " + event.getX() + ", " + event.getY() );
                 //changeFollowMode(false);
                 printoutDebugInfo(null);
@@ -282,6 +282,8 @@ public class MainActivity extends AppCompatActivity {
                 //Log.d("MyApp3", "onZoom " + event.getZoomLevel());// + " " + event.getSource());
                 printoutDebugInfo(null);
                 updateOutOfScreenPosition();
+                updateZoomLabel();
+                binding.scaleBar.invalidate();
                 return false;
             }
         });
@@ -318,10 +320,8 @@ public class MainActivity extends AppCompatActivity {
 
         collapseAuxPanel(prefs.getBoolean("AuxButtonsCollapsed", true));
 
-        setDebugInfo(prefs.getBoolean("ShowDebugInfo", false));
+        setDebugInfo(false); // debug button removed
 
-        if (!BuildConfig.DEBUG)
-            binding.btnDebug.setVisibility(View.GONE);
 
         zoomAnimation = ValueAnimator.ofFloat(0f, 1f);
         zoomAnimation.setDuration(ANIMATION_SPEED_FAST);
@@ -381,6 +381,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
                 mScaleBarOverlay.setUnitsOfMeasure(ScaleBarOverlay.UnitsOfMeasure.metric);
+                binding.scaleBar.setImperial(false);
                 break;
             case "imperial":
                 unitCalc = new UnitCalcInterface() {
@@ -395,6 +396,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
                 mScaleBarOverlay.setUnitsOfMeasure(ScaleBarOverlay.UnitsOfMeasure.imperial);
+                binding.scaleBar.setImperial(true);
                 break;
         }
 
@@ -663,6 +665,8 @@ public class MainActivity extends AppCompatActivity {
         jump(targetPoint, 0);
     }
 
+    private static final boolean FLY_ANIMATION = false;
+
     private void jump(GeoPoint targetPoint, double requestedZoom) {
         setRequiredCenter(targetPoint);
         if (map.getWidth() == 0 || map.getHeight() == 0) { // no animation possible
@@ -684,7 +688,10 @@ public class MainActivity extends AppCompatActivity {
 //        if (BuildConfig.DEBUG)
 //            Toast.makeText(this, "Zooms " + startZoom + " " + intermediateZoom, Toast.LENGTH_SHORT).show();
 
-        if (intermediateZoom < startZoom) {
+        if (intermediateZoom < startZoom - 3) { // farther than a few screens: jump directly, no zoom-out "flight"
+            map.getController().setZoom(targetZoom);
+            map.getController().setCenter(targetPoint);
+        } else if (FLY_ANIMATION && intermediateZoom < startZoom) { // original zoom-out "flight", switched off
             //Log.d("MyApp2", "zoom out animation start [" + startZoom + "] intermediate [" + intermediateZoom + "]");
             ValueAnimator zoomOut = ValueAnimator.ofFloat(0f, 1f);
             int speed = (startZoom - intermediateZoom < 5) ? ANIMATION_SPEED_FAST : ANIMATION_SPEED_SLOW;
@@ -1106,6 +1113,10 @@ public class MainActivity extends AppCompatActivity {
         if (result.getResultCode() == RESULT_OK) {
             //recreate(); // dirty solution
             loadSettings();
+            // "show GPS position" is a setting now
+            boolean gpsShown = mLocationOverlay != null && map.getOverlays().contains(mLocationOverlay);
+            if (prefs.getBoolean("GPSisOn", true) != gpsShown)
+                switchGPS();
             map.invalidate();
         }
     });
@@ -1423,11 +1434,48 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void shiftScaleBar() {
-        mScaleBarOverlay.setScaleBarOffset(
-                (int) (getResources().getDisplayMetrics().density * 16 + mainLayout.getWidth() - binding.auxButtons.auxPanel.getX()),
-                (int) (getResources().getDisplayMetrics().density * 16 + mainLayout.getPaddingBottom())
-        );
-        map.invalidate();
+        binding.scaleBar.invalidate();
+    }
+
+    private void updateZoomLabel() {
+        binding.tvZoomLevel.setText(String.format(Locale.ROOT, "Z %d", Math.round(map.getZoomLevelDouble())));
+    }
+
+    // ------------------------------------------------------------------ "my position" button
+
+    /** where the map was before the last jump to the GPS position (for jumping back) */
+    private GeoPoint returnCenter = null;
+    private double returnZoom = 0;
+    private GeoPoint jumpTarget = null;
+
+    /** first tap: to the GPS position (same zoom); second tap without moving the map: back to where the map was */
+    void clickMyLocation() {
+        if (returnCenter != null && jumpTarget != null && isNear(jumpTarget)) {
+            GeoPoint back = returnCenter;
+            double zoom = returnZoom;
+            returnCenter = null;
+            jumpTarget = null;
+            jump(back, zoom);
+            return;
+        }
+        returnCenter = new GeoPoint(map.getMapCenter());
+        returnZoom = map.getZoomLevelDouble();
+        jumpTarget = null;
+        resetRequiredCenter();
+        jumpToLocation();
+        if (requiredCenter != null) // a jump was started
+            jumpTarget = new GeoPoint(requiredCenter);
+        else
+            returnCenter = null;
+    }
+
+    /** map centre (or the running jump's target) within a few pixels of p */
+    private boolean isNear(GeoPoint p) {
+        GeoPoint c = requiredCenter != null ? requiredCenter : new GeoPoint(map.getMapCenter());
+        android.graphics.Point a = map.getProjection().toPixels(c, null);
+        android.graphics.Point b = map.getProjection().toPixels(p, null);
+        float d = getResources().getDisplayMetrics().density * 30;
+        return Math.abs(a.x - b.x) < d && Math.abs(a.y - b.y) < d;
     }
 
     private void updateOutOfScreenPosition() {

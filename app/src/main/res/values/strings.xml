@@ -82,4 +82,6 @@
     <string name="toast_offline_no_space">Not enough free storage (%1$s needed)</string>
     <string name="toast_offline_open_failed">Cannot open offline map: %1$s</string>
 
+    <string name="stg_show_gps_title">Show GPS position</string>
+    <string name="stg_show_gps_desc">Position dot with accuracy and direction on the map</string>
 </resources>
