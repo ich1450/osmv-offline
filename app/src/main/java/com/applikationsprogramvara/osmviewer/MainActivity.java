@@ -142,7 +142,20 @@ public class MainActivity extends AppCompatActivity {
         //load/initialize the osmdroid configuration, this can be done
         Context ctx = getApplicationContext();
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
-        Configuration.getInstance().setUserAgentValue(BuildConfig.APPLICATION_ID);
+        // OSM's tile servers block unknown or generic apps: send a clear app name with version and project page
+        Configuration.getInstance().setUserAgentValue("LoriMaps/" + BuildConfig.VERSION_NAME + " (+https://github.com/ich1450/osmv-offline)");
+        if (!PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean("osmCacheCleared1", false)) {
+            // the cache still holds "Access blocked" tiles from before: remove them once
+            try {
+                org.osmdroid.tileprovider.modules.SqlTileWriter w = new org.osmdroid.tileprovider.modules.SqlTileWriter();
+                w.purgeCache("OpenStreetMap");
+                w.purgeCache("Mapnik");
+                w.purgeCache("HikeBikeMap");
+                w.onDetach();
+            } catch (Exception e) { Log.e("MyApp", e.toString()); }
+            PreferenceManager.getDefaultSharedPreferences(ctx).edit().putBoolean("osmCacheCleared1", true).apply();
+        }
+        ThunderforestTileSource.apiKey = PreferenceManager.getDefaultSharedPreferences(ctx).getString("ThunderforestKey", "").trim();
         //setting this before the layout is inflated is a good idea
         //it 'should' ensure that the map has a writable location for the map cache, even without permissions
         //if no tiles are displayed, you can try overriding the cache path using Configuration.getInstance().setCachePath
@@ -401,7 +414,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        boolean showOverlayButton = prefs.getBoolean("ShowOverlayButton", true);
+        boolean showOverlayButton = prefs.getBoolean("ShowOverlayButton", false);
         btnOverlay.setVisibility(showOverlayButton ? View.VISIBLE : View.GONE);
         if (!showOverlayButton)
             mapsCatalog.setOverlay(false);
@@ -1112,6 +1125,16 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<Intent> resultLaunchSettings = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (result.getResultCode() == RESULT_OK) {
             //recreate(); // dirty solution
+            String key = prefs.getString("ThunderforestKey", "").trim();
+            if (!key.equals(ThunderforestTileSource.apiKey)) {
+                ThunderforestTileSource.apiKey = key;
+                try {
+                    org.osmdroid.tileprovider.modules.SqlTileWriter w = new org.osmdroid.tileprovider.modules.SqlTileWriter();
+                    w.purgeCache("OpenCycleMap");
+                    w.onDetach();
+                } catch (Exception e) { Log.e("MyApp", e.toString()); }
+                map.getTileProvider().clearTileCache();
+            }
             loadSettings();
             // "show GPS position" is a setting now
             boolean gpsShown = mLocationOverlay != null && map.getOverlays().contains(mLocationOverlay);

@@ -15,11 +15,18 @@
         <CheckBoxPreference android:key="ShowOverlayButton"
             android:title="@string/stg_show_overlay_btn_title"
             android:summary="@string/stg_show_overlay_btn_desc"
-            app:defaultValue="true"
+            app:defaultValue="false"
             app:iconSpaceReserved="false" />
 
         <Preference android:key="OverlaySource"
             android:title="@string/stg_overlay_source_title"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference android:key="ThunderforestKey"
+            android:title="OpenCycleMap: API-Schlüssel"
+            android:summary="OpenCycleMap kommt von Thunderforest und braucht einen kostenlosen Schlüssel (thunderforest.com → Sign up, Plan „Hobby Project“). Ohne Schlüssel steht „API Key Required“ auf der Karte."
+            android:dialogTitle="Thunderforest API-Schlüssel"
+            android:singleLine="true"
             app:iconSpaceReserved="false" />
 
         <ListPreference android:key="UnitsOfMeasure"
@@ -55,10 +62,10 @@
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
             android:title="🗺 Kartenauswahl (oben rechts)"
-            android:summary="Tippen oder lange drücken: Kartenmenü öffnen. Dort eine Karte wählen, mit dem Stift umbenennen oder löschen, oder mit „+ Karte hinzufügen“ eine neue Karte einlesen." />
+            android:summary="Tippen oder lange drücken: Kartenmenü öffnen. Dort eine Karte wählen, mit dem Stift umbenennen oder löschen, oder mit „+ Karte hinzufügen“ eine neue Karte einlesen. Online-Karten (brauchen Internet): OpenStreetMap, OpenCycleMap (mit API-Schlüssel, siehe oben), CyclOSM und OpenTopoMap." />
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"
-            android:title="Overlay (oben rechts, falls eingeschaltet)"
+            android:title="◇ Overlay (oben rechts, nur wenn oben eingeschaltet)"
             android:summary="Tippen: Wander- oder Velowege über die Karte legen bzw. ausblenden (braucht Internet).\nLange drücken: Overlay-Quelle wählen." />
 
         <com.applikationsprogramvara.osmviewer.HelpPreference android:selectable="false" app:iconSpaceReserved="false"

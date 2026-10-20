@@ -49,16 +49,24 @@ public class MapsCatalog {
                     "http://c.tile.opentopomap.org/"},
             "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung: © OpenTopoMap (CC-BY-SA)");
 
-    private static final OnlineTileSourceBase HIKEBIKEMAP = new XYTileSource("HikeBikeMap",
-            0, 19, 256, ".png",
-            new String[] { "https://tiles.wmflabs.org/hikebike/"  });
+    // OpenCycleMap needs a (free) Thunderforest API key, entered in the settings
+    static final OnlineTileSourceBase OPENCYCLEMAP = new ThunderforestTileSource("OpenCycleMap", "cycle");
+
+    // CyclOSM: free cycling map without key
+    private static final OnlineTileSourceBase CYCLOSM = new XYTileSource("CyclOSM",
+            0, 20, 256, ".png", new String[] {
+                    "https://a.tile-cyclosm.openstreetmap.fr/cyclosm/",
+                    "https://b.tile-cyclosm.openstreetmap.fr/cyclosm/",
+                    "https://c.tile-cyclosm.openstreetmap.fr/cyclosm/" },
+            "© CyclOSM, Daten © OpenStreetMap-Mitwirkende");
 
     private static final OnlineTileSourceBase[][] MAP_SOURCES = new OnlineTileSourceBase[][] {
             {
 //                TileSourceFactory.MAPNIK,
                 MAPNIK,
                 MAPNIK_HTTP,
-                HIKEBIKEMAP,
+                OPENCYCLEMAP, // replaces HikeBikeMap at the same position
+                CYCLOSM,
             }, {
                 TileSourceFactory.OpenTopo,
                 HTTP_OPENTOPOMAP,
