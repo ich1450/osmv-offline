@@ -65,8 +65,40 @@ public class OfflineMapManager {
         return result;
     }
 
+    /** Base maps (everything that is not marked as overlay). */
+    public List<File> listBase() {
+        List<File> result = new ArrayList<>();
+        for (File f : list()) if (!isOverlay(f)) result.add(f);
+        return result;
+    }
+
+    /** Transparent overlay maps (MBTiles metadata type = overlay). */
+    public List<File> listOverlays() {
+        List<File> result = new ArrayList<>();
+        for (File f : list()) if (isOverlay(f)) result.add(f);
+        return result;
+    }
+
     public boolean hasMaps() {
-        return !list().isEmpty();
+        return !listBase().isEmpty();
+    }
+
+    private static final java.util.Map<String, Boolean> overlayCache = new java.util.HashMap<>();
+
+    /** True for MBTiles files whose metadata says type = overlay (transparent layer over a base map). */
+    public static boolean isOverlay(File file) {
+        if (!isMBTiles(file)) return false;
+        String key = file.getPath() + "|" + file.lastModified() + "|" + file.length();
+        Boolean cached = overlayCache.get(key);
+        if (cached != null) return cached;
+        boolean result = false;
+        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(file.getPath(), null, SQLiteDatabase.OPEN_READONLY);
+             Cursor c = db.rawQuery("SELECT value FROM metadata WHERE name = 'type'", null)) {
+            result = c.moveToFirst() && "overlay".equalsIgnoreCase(String.valueOf(c.getString(0)).trim());
+        } catch (Exception ignored) {
+        }
+        overlayCache.put(key, result);
+        return result;
     }
 
     @Nullable

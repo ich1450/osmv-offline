@@ -249,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
         offlineMaps = new OfflineMapManager(this);
         mapsCatalog.setOffline(offlineMaps, this::applyOfflineMap,
                 () -> pickOfflineMap.launch(new String[]{"*/*"})); // .mbtiles etc. have no registered MIME type
+        mapsCatalog.setOfflineOverlayCallback(this::applyOfflineOverlay);
 
         loadSettings();
 
@@ -1045,6 +1046,38 @@ public class MainActivity extends AppCompatActivity {
         binding.scaleBar.invalidate();
     }
 
+    // ------------------------------------------------------------------ offline overlays
+
+    private TilesOverlay offlineOverlay = null;
+    private File activeOverlayFile = null;
+
+    /** Shows a transparent offline map (MBTiles type "overlay") over the current map; null removes it. */
+    void applyOfflineOverlay(@Nullable File file) {
+        if (file != null && file.equals(activeOverlayFile)) return;
+        if (offlineOverlay != null) {
+            map.getOverlays().remove(offlineOverlay);
+            offlineOverlay.onDetach(map);
+            offlineOverlay = null;
+            activeOverlayFile = null;
+        }
+        if (file != null) {
+            try {
+                OfflineTileProvider provider = new OfflineTileProvider(new SimpleRegisterReceiver(getApplicationContext()), new File[]{file});
+                int tileSize = OfflineMapManager.readTileSize(file);
+                provider.setTileSource(new XYTileSource("OfflineOverlay", 0, 22, tileSize, ".png", new String[0]));
+                offlineOverlay = new TilesOverlay(provider, this);
+                offlineOverlay.setLoadingBackgroundColor(Color.TRANSPARENT);
+                offlineOverlay.setLoadingLineColor(Color.TRANSPARENT);
+                provider.getTileRequestCompleteHandlers().add(map.getTileRequestCompleteHandler());
+                map.getOverlays().add(Math.min(1, map.getOverlays().size()), offlineOverlay); // above the map, below position, ruler etc.
+                activeOverlayFile = file;
+            } catch (Exception e) {
+                Toast.makeText(this, getString(R.string.toast_offline_open_failed, e.getMessage()), Toast.LENGTH_LONG).show();
+            }
+        }
+        map.invalidate();
+    }
+
     /** Restores the normal online tile provider after an offline map was shown. */
     private void useOnlineTileProvider() {
         if (activeOfflineFile == null)
@@ -1144,7 +1177,10 @@ public class MainActivity extends AppCompatActivity {
             public void onDone(File file) {
                 if (dialog.isShowing()) dialog.dismiss();
                 Toast.makeText(MainActivity.this, getString(R.string.toast_offline_imported, file.getName()), Toast.LENGTH_LONG).show();
-                mapsCatalog.selectOffline(file, true);
+                if (OfflineMapManager.isOverlay(file))
+                    mapsCatalog.selectOfflineOverlay(file); // transparent layer: shown over the current map
+                else
+                    mapsCatalog.selectOffline(file, true);
             }
 
             @Override

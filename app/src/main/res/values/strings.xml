@@ -54,6 +54,8 @@
     <string name="dlg_select_map_title">Karte auswählen</string>
     <string name="header_offline_maps">Offline-Karten</string>
     <string name="header_online_maps">Online-Karten</string>
+    <string name="header_overlays">Overlays</string>
+    <string name="overlay_none">Kein Overlay</string>
     <string name="btn_add_map">+ Karte hinzufügen</string>
     <string name="dlg_rename_title">Karte umbenennen</string>
     <string name="hint_no_offline_maps">Noch keine Offline-Karten. Mit \"+ Karte hinzufügen\" eine .mbtiles-Datei importieren.</string>

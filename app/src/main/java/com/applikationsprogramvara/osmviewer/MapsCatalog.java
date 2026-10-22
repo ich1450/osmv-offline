@@ -78,6 +78,7 @@ public class MapsCatalog {
     /** Category index used for offline map files (after the online categories). */
     public static final int OFFLINE_INDEX = MAP_SOURCES.length;
     private static final String PREF_OFFLINE_FILE = "offlineMapFile";
+    private static final String PREF_OVERLAY_FILE = "offlineOverlayFile";
 
     private final SharedPreferences prefs;
     private final CallbackSetMapSource setMap;
@@ -89,6 +90,29 @@ public class MapsCatalog {
     @Nullable private OfflineMapManager offline;
     @Nullable private CallbackSetOfflineMap setOfflineMap;
     @Nullable private Runnable requestImport;
+    @Nullable private CallbackSetOfflineOverlay setOfflineOverlay;
+
+    public interface CallbackSetOfflineOverlay {
+        void set(@Nullable File file);
+    }
+
+    /** Enables offline overlays (transparent MBTiles over the map), chosen in the map menu. */
+    public void setOfflineOverlayCallback(CallbackSetOfflineOverlay callback) {
+        this.setOfflineOverlay = callback;
+    }
+
+    private void loadOfflineOverlay() {
+        if (offline == null || setOfflineOverlay == null) return;
+        File f = offline.find(prefs.getString(PREF_OVERLAY_FILE, null));
+        setOfflineOverlay.set(f != null && OfflineMapManager.isOverlay(f) ? f : null);
+    }
+
+    /** Shows the given overlay file (null = none) and remembers it. */
+    public void selectOfflineOverlay(@Nullable File file) {
+        if (file == null) prefs.edit().remove(PREF_OVERLAY_FILE).apply();
+        else prefs.edit().putString(PREF_OVERLAY_FILE, file.getName()).apply();
+        if (setOfflineOverlay != null) setOfflineOverlay.set(file);
+    }
 
     public MapsCatalog(SharedPreferences prefs, @Nullable CallbackSetMapSource setMap, @Nullable CallbackSetOverlaySource setOverlay) {
         this.prefs = prefs;
@@ -115,6 +139,7 @@ public class MapsCatalog {
         mapIndex1 = prefs.getInt("mapSourceIndex", 0);
         load(mapIndex1);
         loadOverlay();
+        loadOfflineOverlay();
     }
 
     public void load(int index1) {
@@ -134,7 +159,7 @@ public class MapsCatalog {
             return false;
         File file = offline.find(prefs.getString(PREF_OFFLINE_FILE, null));
         if (file == null) {
-            List<File> files = offline.list();
+            List<File> files = offline.listBase();
             if (files.isEmpty())
                 return false;
             file = files.get(0);
@@ -172,6 +197,7 @@ public class MapsCatalog {
         final String details;
         final File file;           // offline only
         final int index1, index2;  // online only
+        boolean overlay;           // offline overlay ("overlay:none" = no overlay)
 
         MapEntry(String key, String defaultName, String details, File file, int index1, int index2) {
             this.key = key; this.defaultName = defaultName; this.details = details;
@@ -195,9 +221,30 @@ public class MapsCatalog {
     private List<MapEntry> offlineEntries() {
         List<MapEntry> list = new java.util.ArrayList<>();
         if (offline != null)
-            for (File f : offline.list())
+            for (File f : offline.listBase())
                 list.add(new MapEntry("file:" + f.getName(), OfflineMapManager.readTitle(f), offline.describe(f), f, -1, -1));
         return list;
+    }
+
+    private List<MapEntry> overlayEntries(Context context) {
+        List<MapEntry> list = new java.util.ArrayList<>();
+        if (offline == null) return list;
+        List<File> files = offline.listOverlays();
+        if (files.isEmpty()) return list;
+        MapEntry none = new MapEntry("overlay:none", context.getString(R.string.overlay_none), "", null, -1, -1);
+        none.overlay = true;
+        list.add(none);
+        for (File f : files) {
+            MapEntry e = new MapEntry("file:" + f.getName(), OfflineMapManager.readTitle(f), offline.describe(f), f, -1, -1);
+            e.overlay = true;
+            list.add(e);
+        }
+        return list;
+    }
+
+    private String currentOverlayKey() {
+        String f = prefs.getString(PREF_OVERLAY_FILE, null);
+        return f == null ? "overlay:none" : "file:" + f;
     }
 
     private List<MapEntry> onlineEntries() {
@@ -212,7 +259,9 @@ public class MapsCatalog {
     }
 
     private void select(MapEntry e) {
-        if (e.file != null) {
+        if (e.overlay) {
+            selectOfflineOverlay(e.file);
+        } else if (e.file != null) {
             selectOffline(e.file, true);
         } else {
             mapIndex1 = e.index1;
@@ -256,6 +305,14 @@ public class MapsCatalog {
         }
         for (MapEntry e : offlineMaps)
             addRow(list, dialog, e, e.key.equals(current), dp);
+
+        List<MapEntry> overlays = overlayEntries(context);
+        if (!overlays.isEmpty()) {
+            addHeader(list, context.getString(R.string.header_overlays), dp);
+            String currentOverlay = currentOverlayKey();
+            for (MapEntry e : overlays)
+                addRow(list, dialog, e, e.key.equals(currentOverlay), dp);
+        }
 
         if (offline != null) {
             addHeader(list, context.getString(R.string.header_online_maps), dp);
@@ -320,7 +377,8 @@ public class MapsCatalog {
             dialog.dismiss();
             showRenameDialog(context, e);
         });
-        row.addView(edit);
+        if (!"overlay:none".equals(e.key))
+            row.addView(edit);
 
         row.setOnClickListener(v -> {
             dialog.dismiss();
@@ -370,6 +428,8 @@ public class MapsCatalog {
                     // close the archive first if this map is currently shown
                     if (mapIndex1 == OFFLINE_INDEX && e.file.getName().equals(prefs.getString(PREF_OFFLINE_FILE, "")))
                         fallbackToOnline();
+                    if (e.file.getName().equals(prefs.getString(PREF_OVERLAY_FILE, "")))
+                        selectOfflineOverlay(null);
                     //noinspection ResultOfMethodCallIgnored
                     e.file.delete();
                     prefs.edit().remove("mapName_" + e.key).apply();
