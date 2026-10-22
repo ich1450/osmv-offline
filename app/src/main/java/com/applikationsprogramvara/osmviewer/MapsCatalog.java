@@ -430,8 +430,9 @@ public class MapsCatalog {
                         fallbackToOnline();
                     if (e.file.getName().equals(prefs.getString(PREF_OVERLAY_FILE, "")))
                         selectOfflineOverlay(null);
-                    //noinspection ResultOfMethodCallIgnored
-                    e.file.delete();
+                    for (File part : offline != null ? offline.parts(e.file) : java.util.Collections.singletonList(e.file))
+                        //noinspection ResultOfMethodCallIgnored
+                        part.delete();
                     prefs.edit().remove("mapName_" + e.key).apply();
                     showMapMenu(context);
                 })

@@ -65,10 +65,37 @@ public class OfflineMapManager {
         return result;
     }
 
-    /** Base maps (everything that is not marked as overlay). */
+    /** Base maps (everything that is not marked as overlay). A map split into several files
+     *  ("name-part1of6.mbtiles", "name-part2of6.mbtiles" ...) is listed once, by its first file present. */
     public List<File> listBase() {
         List<File> result = new ArrayList<>();
-        for (File f : list()) if (!isOverlay(f)) result.add(f);
+        java.util.Set<String> groups = new java.util.HashSet<>();
+        for (File f : list()) {
+            if (isOverlay(f)) continue;
+            String g = partGroup(f);
+            if (g != null && !groups.add(g)) continue;
+            result.add(f);
+        }
+        return result;
+    }
+
+    private static final java.util.regex.Pattern PART =
+            java.util.regex.Pattern.compile("^(.*)-part(\\d+)of(\\d+)\\.mbtiles$", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /** Group key of a multi-part map file, or null for a normal file. */
+    @Nullable
+    public static String partGroup(File f) {
+        java.util.regex.Matcher m = PART.matcher(f.getName());
+        return m.matches() ? (m.group(1) + "|" + m.group(3)).toLowerCase(Locale.ROOT) : null;
+    }
+
+    /** All files of the map that the given file belongs to (the file itself for a normal map). */
+    public List<File> parts(File f) {
+        String g = partGroup(f);
+        List<File> result = new ArrayList<>();
+        if (g == null) { result.add(f); return result; }
+        for (File o : list()) if (g.equals(partGroup(o))) result.add(o);
+        if (result.isEmpty()) result.add(f);
         return result;
     }
 
@@ -125,6 +152,14 @@ public class OfflineMapManager {
         int dot = name.lastIndexOf('.');
         String base = dot > 0 ? name.substring(0, dot) : name;
         String ext = dot > 0 ? name.substring(dot + 1) : "";
+        java.util.regex.Matcher m = PART.matcher(name);
+        if (m.matches()) {
+            List<File> parts = parts(f);
+            long size = 0;
+            for (File p : parts) size += p.length();
+            return m.group(1) + "  (" + ext + ", " + parts.size() + "/" + m.group(3) + " Teile, "
+                    + Formatter.formatShortFileSize(context, size) + ")";
+        }
         return base + "  (" + ext + ", " + Formatter.formatShortFileSize(context, f.length()) + ")";
     }
 

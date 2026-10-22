@@ -1092,7 +1092,9 @@ public class MainActivity extends AppCompatActivity {
     void applyOfflineMap(File file, boolean jumpToMap) {
         if (!file.equals(activeOfflineFile)) {
             try {
-                OfflineTileProvider provider = new OfflineTileProvider(new SimpleRegisterReceiver(getApplicationContext()), new File[]{file});
+                // a map split into several files is shown as one: osmdroid looks for each tile in all of them
+                OfflineTileProvider provider = new OfflineTileProvider(new SimpleRegisterReceiver(getApplicationContext()),
+                        offlineMaps.parts(file).toArray(new File[0]));
                 IArchiveFile[] archives = provider.getArchives();
                 if (archives.length == 0)
                     throw new IOException(getString(R.string.toast_offline_unsupported));
